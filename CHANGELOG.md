@@ -1,3 +1,8 @@
+## 0.1.1
+
+- Expand the package description to name what the package does in the
+  words people search for. No code changes.
+
 ## 0.1.0
 
 Initial release.

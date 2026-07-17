@@ -1,8 +1,8 @@
 name: instructor_dart
 description: >-
-  Typed, validated structured outputs from LLMs. Plain-Dart schema builder,
-  automatic validation, and repair retries. No code generation.
-version: 0.1.0
+  Typed, validated structured outputs from LLMs. Build a JSON Schema in plain
+  Dart, with automatic validation and repair retries. No code generation.
+version: 0.1.1
 repository: https://github.com/Yusufihsangorgel/instructor_dart
 
 topics:
