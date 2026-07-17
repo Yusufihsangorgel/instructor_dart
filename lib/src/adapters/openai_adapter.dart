@@ -32,7 +32,7 @@ final class OpenAIAdapter implements LlmAdapter {
   final String model;
   final double? temperature;
 
-  /// Per-request time limit. A [TimeoutException] is thrown when the
+  /// Per-request time limit. A `TimeoutException` is thrown when the
   /// server does not answer in time.
   final Duration timeout;
 
