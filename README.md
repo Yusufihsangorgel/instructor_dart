@@ -43,17 +43,7 @@ final person = await instructor.extract(
 4. If every attempt fails, `ExtractionException` carries the full attempt
    history: what the model said and why it was rejected.
 
-```mermaid
-flowchart TD
-    A[Your schema] --> B[Render to JSON Schema]
-    B --> C[Forced tool call to model]
-    C --> D[Validate response locally]
-    D -->|valid| E[fromJson, typed object]
-    D -->|violations| F{Retries left?}
-    F -->|yes| G[Append violations to conversation]
-    G --> C
-    F -->|no| H[ExtractionException with attempt history]
-```
+![Diagram of the extract loop: prompt and schema go to the model as a forced tool call, the reply is parsed and validated, a mismatch is fed back for a retry, and a valid reply becomes a typed Dart object](https://raw.githubusercontent.com/Yusufihsangorgel/instructor_dart/main/doc/architecture.png)
 
 ```dart
 try {

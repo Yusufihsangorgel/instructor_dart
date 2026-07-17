@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="440" viewBox="0 0 1160 440" font-family="Menlo, monospace">
+  <defs>
+    <marker id="arw" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#38BDF8"/>
+    </marker>
+    <marker id="arwd" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <rect width="1160" height="440" fill="#0B1220"/>
+  <text x="48" y="56" font-size="24" font-weight="bold" fill="#E2E8F0">How instructor_dart runs an extraction</text>
+  <text x="48" y="84" font-size="14" fill="#94A3B8">The model answers a forced tool call. The reply is validated, and any mismatch is fed back for a retry.</text>
+
+  <!-- Box 1: input -->
+  <rect x="48" y="148" width="184" height="96" rx="10" fill="#0E1A2E" stroke="#1E3A5F" stroke-width="1.5"/>
+  <text x="64" y="176" font-size="12" fill="#64748B">1   INPUT</text>
+  <text x="64" y="202" font-size="15" fill="#E2E8F0">prompt + schema</text>
+  <text x="64" y="224" font-size="12" fill="#94A3B8">Schema.object({...})</text>
+
+  <!-- Box 2: model call -->
+  <rect x="264" y="148" width="184" height="96" rx="10" fill="#0E1A2E" stroke="#1E3A5F" stroke-width="1.5"/>
+  <text x="280" y="176" font-size="12" fill="#64748B">2   MODEL</text>
+  <text x="280" y="202" font-size="15" fill="#E2E8F0">forced tool call</text>
+  <text x="280" y="224" font-size="12" fill="#94A3B8">OpenAI / Anthropic</text>
+
+  <!-- Box 3: parse -->
+  <rect x="480" y="148" width="184" height="96" rx="10" fill="#0E1A2E" stroke="#1E3A5F" stroke-width="1.5"/>
+  <text x="496" y="176" font-size="12" fill="#64748B">3   PARSE</text>
+  <text x="496" y="202" font-size="15" fill="#E2E8F0">parse response</text>
+  <text x="496" y="224" font-size="12" fill="#94A3B8">read the tool JSON</text>
+
+  <!-- Box 4: validate (branch point) -->
+  <rect x="696" y="148" width="184" height="96" rx="10" fill="#0E1A2E" stroke="#1E3A5F" stroke-width="1.5"/>
+  <text x="712" y="176" font-size="12" fill="#64748B">4   VALIDATE</text>
+  <text x="712" y="202" font-size="15" fill="#E2E8F0">validate</text>
+  <text x="712" y="224" font-size="12" fill="#94A3B8">schema.validate()</text>
+
+  <!-- Success box (accent) -->
+  <rect x="936" y="120" width="196" height="80" rx="10" fill="#111C2E" stroke="#38BDF8" stroke-width="1.6"/>
+  <text x="952" y="148" font-size="12" fill="#64748B">VALID</text>
+  <text x="952" y="172" font-size="15" fill="#E2E8F0">typed Dart object</text>
+  <text x="952" y="192" font-size="12" fill="#94A3B8">fromJson, typed T</text>
+
+  <!-- Failure box -->
+  <rect x="936" y="224" width="196" height="80" rx="10" fill="#0E1A2E" stroke="#1E3A5F" stroke-width="1.5"/>
+  <text x="952" y="252" font-size="12" fill="#64748B">NO RETRIES LEFT</text>
+  <text x="952" y="276" font-size="14" fill="#E2E8F0">ExtractionException</text>
+  <text x="952" y="296" font-size="12" fill="#94A3B8">attempt history kept</text>
+
+  <!-- Forward arrows (accent happy path) -->
+  <path d="M232 196 L264 196" stroke="#38BDF8" stroke-width="2" fill="none" marker-end="url(#arw)"/>
+  <path d="M448 196 L480 196" stroke="#38BDF8" stroke-width="2" fill="none" marker-end="url(#arw)"/>
+  <path d="M664 196 L696 196" stroke="#38BDF8" stroke-width="2" fill="none" marker-end="url(#arw)"/>
+  <path d="M880 184 L936 160" stroke="#38BDF8" stroke-width="2" fill="none" marker-end="url(#arw)"/>
+  <text x="905" y="150" font-size="12" fill="#94A3B8" text-anchor="middle">valid</text>
+
+  <!-- Failure arrow to exception -->
+  <path d="M880 208 L936 262" stroke="#64748B" stroke-width="1.8" fill="none" marker-end="url(#arwd)"/>
+  <text x="898" y="222" font-size="11" fill="#64748B" text-anchor="middle">no retries</text>
+
+  <!-- Retry loop back to the model -->
+  <path d="M788 244 L788 312 L356 312 L356 244" stroke="#64748B" stroke-width="1.8" fill="none" marker-end="url(#arwd)"/>
+  <text x="572" y="306" font-size="12.5" fill="#64748B" text-anchor="middle">on a mismatch, append the errors and retry</text>
+
+  <!-- Bottom note -->
+  <text x="48" y="404" font-size="13" fill="#64748B">No code generation and no build_runner. The schema is a plain value: it prompts the model and validates the reply.</text>
+</svg>
