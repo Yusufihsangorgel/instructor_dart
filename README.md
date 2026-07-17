@@ -1,5 +1,7 @@
 # instructor_dart
 
+![instructor_dart banner](doc/banner.png)
+
 Typed, validated structured outputs from LLMs.
 
 Define the shape of the data you want as a plain-Dart schema, call
