@@ -4,13 +4,14 @@ description: >-
   Dart, with automatic validation and repair retries. No code generation.
 version: 0.1.1
 repository: https://github.com/Yusufihsangorgel/instructor_dart
+issue_tracker: https://github.com/Yusufihsangorgel/instructor_dart/issues
 
 topics:
   - llm
-  - ai
   - structured-output
-  - json-schema
   - openai
+  - anthropic
+  - ollama
 
 environment:
   sdk: ^3.4.0

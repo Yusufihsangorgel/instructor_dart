@@ -1,6 +1,6 @@
 # instructor_dart
 
-![instructor_dart banner](doc/banner.png)
+![instructor_dart banner](https://raw.githubusercontent.com/Yusufihsangorgel/instructor_dart/main/doc/banner.png)
 
 Typed, validated structured outputs from LLMs.
 
@@ -42,6 +42,18 @@ final person = await instructor.extract(
    the conversation and the model retries, up to `maxRetries` times.
 4. If every attempt fails, `ExtractionException` carries the full attempt
    history: what the model said and why it was rejected.
+
+```mermaid
+flowchart TD
+    A[Your schema] --> B[Render to JSON Schema]
+    B --> C[Forced tool call to model]
+    C --> D[Validate response locally]
+    D -->|valid| E[fromJson, typed object]
+    D -->|violations| F{Retries left?}
+    F -->|yes| G[Append violations to conversation]
+    G --> C
+    F -->|no| H[ExtractionException with attempt history]
+```
 
 ```dart
 try {
