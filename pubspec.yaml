@@ -1,0 +1,23 @@
+name: instructor_dart
+description: >-
+  Typed, validated structured outputs from LLMs. Plain-Dart schema builder,
+  automatic validation, and repair retries. No code generation.
+version: 0.1.0
+repository: https://github.com/Yusufihsangorgel/instructor_dart
+
+topics:
+  - llm
+  - ai
+  - structured-output
+  - json-schema
+  - openai
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  http: ^1.2.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
