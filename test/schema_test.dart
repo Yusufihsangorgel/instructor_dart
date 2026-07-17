@@ -91,8 +91,8 @@ void main() {
         violations.map((v) => v.path),
         containsAll([r'$.age', r'$.role', r'$.tags']),
       );
-      expect(violations.map((v) => v.message),
-          everyElement(contains('missing')));
+      expect(
+          violations.map((v) => v.message), everyElement(contains('missing')));
     });
 
     test('reports type mismatches with paths', () {
@@ -167,6 +167,27 @@ void main() {
       final s = Schema.string(pattern: r'^\d{4}$');
       expect(s.validate('1234'), isEmpty);
       expect(s.validate('12a4').single.message, contains('pattern'));
+    });
+
+    test('accepts integral doubles as integers (JSON Schema semantics)', () {
+      final s = Schema.integer(min: 0, max: 130);
+      expect(s.validate(25.0), isEmpty);
+      expect(s.validate(25.5).single.message, contains('expected an integer'));
+      expect(s.validate(double.nan).single.message,
+          contains('expected an integer'));
+      expect(s.validate(200.0).single.message, contains('expected <= 130'));
+    });
+
+    test('rejects invalid patterns and empty enums at construction', () {
+      expect(() => Schema.string(pattern: '('), throwsFormatException);
+      expect(() => Schema.enumeration([]), throwsArgumentError);
+    });
+
+    test('enumeration copies its values', () {
+      final values = ['a', 'b'];
+      final s = Schema.enumeration(values);
+      values.add('c');
+      expect((s.toJsonSchema()['enum'] as List), ['a', 'b']);
     });
   });
 }

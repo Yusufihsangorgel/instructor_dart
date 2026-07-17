@@ -73,6 +73,13 @@ final class Instructor {
   }
 
   /// Like [extract], but returns the validated JSON object as-is.
+  ///
+  /// Integral doubles (`25.0`) in the response are coerced to `int` before
+  /// validation, so casts like `json['age'] as int` behave the same on the
+  /// Dart VM and the web.
+  ///
+  /// Exceptions thrown by the adapter, such as [AdapterException], propagate
+  /// immediately; only schema violations are retried.
   Future<Map<String, Object?>> extractRaw({
     required List<Message> messages,
     required ObjectSchema schema,
@@ -93,8 +100,8 @@ final class Instructor {
       final response = await _adapter.complete(LlmRequest(
         messages: List.unmodifiable(transcript),
         toolName: toolName,
-        toolDescription:
-            toolDescription ?? 'Record the extracted data as structured fields.',
+        toolDescription: toolDescription ??
+            'Record the extracted data as structured fields.',
         jsonSchema: jsonSchema,
       ));
 
@@ -105,14 +112,15 @@ final class Instructor {
       } else if (response.text != null) {
         candidate = _decodeJsonObject(response.text!);
         if (candidate == null) {
-          violations.add(const SchemaViolation(
-              r'$', 'response is not a JSON object'));
+          violations.add(
+              const SchemaViolation(r'$', 'response is not a JSON object'));
         }
       } else {
         violations.add(const SchemaViolation(
             r'$', 'model returned neither a tool call nor text'));
       }
       if (candidate != null) {
+        candidate = _coerceIntegralDoubles(candidate) as Map<String, Object?>;
         violations.addAll(schema.validate(candidate));
       }
       if (violations.isEmpty) {
@@ -167,6 +175,30 @@ final class Instructor {
       }
     }
     return null;
+  }
+
+  /// Recursively converts finite doubles with a zero fractional part into
+  /// ints. `jsonDecode` on the VM yields `double` for numbers written as
+  /// `25.0` while web compilation yields `int`; coercing removes the
+  /// difference. Doubles outside the safe integer range are left alone.
+  static Object? _coerceIntegralDoubles(Object? value) {
+    const maxSafeInteger = 9007199254740992.0; // 2^53
+    if (value is double &&
+        value.isFinite &&
+        value.truncateToDouble() == value &&
+        value.abs() <= maxSafeInteger) {
+      return value.toInt();
+    }
+    if (value is Map) {
+      return <String, Object?>{
+        for (final entry in value.entries)
+          entry.key as String: _coerceIntegralDoubles(entry.value),
+      };
+    }
+    if (value is List) {
+      return [for (final item in value) _coerceIntegralDoubles(item)];
+    }
+    return value;
   }
 
   static Iterable<String> _jsonCandidates(String text) sync* {

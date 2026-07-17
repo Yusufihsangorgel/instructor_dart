@@ -3,9 +3,8 @@ import 'message.dart';
 /// A provider-agnostic completion request.
 ///
 /// Adapters translate this into the provider's wire format. The schema is
-/// always presented to the model as a forced tool/function call named
-/// [toolName], which is the most reliable way to get structured data from
-/// every major provider.
+/// presented to the model as a tool/function call named [toolName], forced
+/// via the provider's tool-choice mechanism where the server supports it.
 final class LlmRequest {
   const LlmRequest({
     required this.messages,
@@ -24,8 +23,8 @@ final class LlmRequest {
 
 /// A provider-agnostic completion response.
 ///
-/// Exactly one of [toolArguments] or [text] is usually set. When the
-/// provider returned a parsed tool call, [toolArguments] carries it; when it
+/// Adapters must set at most one of the two fields. When the provider
+/// returned a parsed tool call, [toolArguments] carries it; when it
 /// returned plain text (or an unparseable tool call), [text] carries that
 /// and the caller falls back to extracting JSON from it.
 final class LlmResponse {

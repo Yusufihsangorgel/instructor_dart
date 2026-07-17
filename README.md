@@ -73,6 +73,11 @@ final adapter = OpenAIAdapter(
 );
 ```
 
+Note: some compatible servers, Ollama included, ignore `tool_choice` and
+may answer with plain text. Extraction still works: the JSON is parsed
+out of the text and validated the same way; a malformed answer costs one
+repair round.
+
 Anything else: implement `LlmAdapter` (one method) and pass it to
 `Instructor`.
 
@@ -99,7 +104,9 @@ This package does one thing: reliable typed extraction. It is not an
 agent framework and does not manage conversations, tools, or memory.
 
 Planned: streaming partial results, a Gemini adapter, MCP sampling
-support, and an optional bridge for `json_serializable` classes.
+support, server-side strict schema modes (OpenAI structured outputs,
+Anthropic strict tool use), and an optional bridge for
+`json_serializable` classes.
 
 ## Credits
 

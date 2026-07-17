@@ -49,7 +49,8 @@ void main() {
 
   test('parses JSON out of plain text and fenced blocks', () async {
     final adapter = _ScriptedAdapter([
-      const LlmResponse(text: 'Sure:\n```json\n{"name": "John", "age": 25}\n```'),
+      const LlmResponse(
+          text: 'Sure:\n```json\n{"name": "John", "age": 25}\n```'),
     ]);
     final raw = await Instructor(adapter: adapter)
         .extractRaw(messages: messages, schema: schema);
@@ -81,8 +82,7 @@ void main() {
     expect(repair[2].content, contains('extract'));
   });
 
-  test('throws with full attempt history when retries are exhausted',
-      () async {
+  test('throws with full attempt history when retries are exhausted', () async {
     final adapter = _ScriptedAdapter([
       const LlmResponse(text: 'not json at all'),
       const LlmResponse(toolArguments: {'name': 7, 'age': 25}),
@@ -120,6 +120,39 @@ void main() {
       () => Instructor(adapter: adapter)
           .extractRaw(messages: messages, schema: schema, maxRetries: -1),
       throwsArgumentError,
+    );
+  });
+
+  test('coerces integral doubles to int, including nested ones', () async {
+    // On the VM, jsonDecode('25.0') yields a double; models regularly emit
+    // integers this way. The result must still satisfy `as int` casts.
+    final adapter = _ScriptedAdapter([
+      const LlmResponse(toolArguments: {
+        'name': 'John',
+        'age': 25.0,
+        'scores': [1.0, 2.5],
+      }),
+    ]);
+    final nested = Schema.object({
+      'name': Schema.string(),
+      'age': Schema.integer(min: 0),
+      'scores': Schema.list(Schema.number()),
+    });
+    final raw = await Instructor(adapter: adapter)
+        .extractRaw(messages: messages, schema: nested);
+    expect(raw['age'], same(25));
+    expect(raw['age'], isA<int>());
+    expect(raw['scores'], [1, 2.5]);
+  });
+
+  test('fractional doubles still fail integer validation', () async {
+    final adapter = _ScriptedAdapter([
+      const LlmResponse(toolArguments: {'name': 'John', 'age': 25.5}),
+    ]);
+    await expectLater(
+      Instructor(adapter: adapter)
+          .extractRaw(messages: messages, schema: schema, maxRetries: 0),
+      throwsA(isA<ExtractionException>()),
     );
   });
 }

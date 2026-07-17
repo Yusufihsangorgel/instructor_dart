@@ -8,7 +8,9 @@ import '../adapter.dart';
 /// (Ollama, LM Studio, vLLM, OpenRouter, and others exposing `/v1`).
 ///
 /// The schema is sent as a function tool and the tool call is forced with
-/// `tool_choice`, so the model cannot answer with prose instead of data.
+/// `tool_choice`. Servers that ignore `tool_choice` (Ollama's
+/// OpenAI-compatible endpoint, for example) may still answer with text;
+/// `Instructor` then falls back to parsing JSON out of the text.
 final class OpenAIAdapter implements LlmAdapter {
   /// [baseUrl] must point at the API root that contains
   /// `/chat/completions`, e.g. `https://api.openai.com/v1` or
@@ -19,6 +21,7 @@ final class OpenAIAdapter implements LlmAdapter {
     String baseUrl = 'https://api.openai.com/v1',
     http.Client? client,
     this.temperature,
+    this.timeout = const Duration(seconds: 60),
   })  : _apiKey = apiKey,
         _baseUrl = baseUrl.endsWith('/')
             ? baseUrl.substring(0, baseUrl.length - 1)
@@ -28,6 +31,11 @@ final class OpenAIAdapter implements LlmAdapter {
 
   final String model;
   final double? temperature;
+
+  /// Per-request time limit. A [TimeoutException] is thrown when the
+  /// server does not answer in time.
+  final Duration timeout;
+
   final String _apiKey;
   final String _baseUrl;
   final http.Client _client;
@@ -35,48 +43,60 @@ final class OpenAIAdapter implements LlmAdapter {
 
   @override
   Future<LlmResponse> complete(LlmRequest request) async {
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/chat/completions'),
-      headers: {
-        'authorization': 'Bearer $_apiKey',
-        'content-type': 'application/json',
-      },
-      body: jsonEncode({
-        'model': model,
-        if (temperature != null) 'temperature': temperature,
-        'messages': [
-          for (final message in request.messages)
-            {'role': message.role.name, 'content': message.content},
-        ],
-        'tools': [
-          {
-            'type': 'function',
-            'function': {
-              'name': request.toolName,
-              'description': request.toolDescription,
-              'parameters': request.jsonSchema,
-            },
+    final response = await _client
+        .post(
+          Uri.parse('$_baseUrl/chat/completions'),
+          headers: {
+            'authorization': 'Bearer $_apiKey',
+            'content-type': 'application/json',
           },
-        ],
-        'tool_choice': {
-          'type': 'function',
-          'function': {'name': request.toolName},
-        },
-      }),
-    );
+          body: jsonEncode({
+            'model': model,
+            if (temperature != null) 'temperature': temperature,
+            'messages': [
+              for (final message in request.messages)
+                {'role': message.role.name, 'content': message.content},
+            ],
+            'tools': [
+              {
+                'type': 'function',
+                'function': {
+                  'name': request.toolName,
+                  'description': request.toolDescription,
+                  'parameters': request.jsonSchema,
+                },
+              },
+            ],
+            'tool_choice': {
+              'type': 'function',
+              'function': {'name': request.toolName},
+            },
+          }),
+        )
+        .timeout(timeout);
+    final body = utf8.decode(response.bodyBytes);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw AdapterException(
-          response.statusCode, utf8.decode(response.bodyBytes));
+      throw AdapterException(response.statusCode, body);
     }
 
-    final json =
-        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(body);
+    } on FormatException {
+      throw AdapterException(
+          response.statusCode, 'response body is not JSON: $body');
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw AdapterException(
+          response.statusCode, 'unexpected response shape: $body');
+    }
+    final json = decoded;
     final choices = json['choices'] as List?;
     if (choices == null || choices.isEmpty) {
       return const LlmResponse();
     }
-    final message =
-        (choices.first as Map<String, dynamic>)['message'] as Map<String, dynamic>?;
+    final message = (choices.first as Map<String, dynamic>)['message']
+        as Map<String, dynamic>?;
     if (message == null) return const LlmResponse();
 
     final toolCalls = message['tool_calls'] as List?;
@@ -84,11 +104,16 @@ final class OpenAIAdapter implements LlmAdapter {
       final function = (toolCalls.first as Map<String, dynamic>)['function']
           as Map<String, dynamic>?;
       final arguments = function?['arguments'];
+      // Per spec `arguments` is a JSON string, but some compatible servers
+      // send an already-parsed object.
+      if (arguments is Map<String, dynamic>) {
+        return LlmResponse(toolArguments: arguments.cast<String, Object?>());
+      }
       if (arguments is String) {
         try {
-          final decoded = jsonDecode(arguments);
-          if (decoded is Map<String, dynamic>) {
-            return LlmResponse(toolArguments: decoded.cast<String, Object?>());
+          final parsed = jsonDecode(arguments);
+          if (parsed is Map<String, dynamic>) {
+            return LlmResponse(toolArguments: parsed.cast<String, Object?>());
           }
         } on FormatException {
           // Malformed arguments; fall through and let the caller repair.
@@ -96,7 +121,18 @@ final class OpenAIAdapter implements LlmAdapter {
         return LlmResponse(text: arguments);
       }
     }
-    return LlmResponse(text: message['content'] as String?);
+    final content = message['content'];
+    if (content is String) return LlmResponse(text: content);
+    if (content is List) {
+      // Content-part arrays, as used by some compatible servers.
+      final text = [
+        for (final part in content)
+          if (part is Map && part['type'] == 'text')
+            part['text'] as String? ?? '',
+      ].join();
+      return LlmResponse(text: text.isEmpty ? null : text);
+    }
+    return const LlmResponse();
   }
 
   /// Closes the underlying HTTP client if this adapter created it.

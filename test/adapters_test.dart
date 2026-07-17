@@ -17,8 +17,7 @@ LlmRequest _request() => LlmRequest(
 
 void main() {
   group('OpenAIAdapter', () {
-    test('builds a forced tool call request and parses the response',
-        () async {
+    test('builds a forced tool call request and parses the response', () async {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
@@ -102,8 +101,7 @@ void main() {
             }),
             200,
           ));
-      final adapter =
-          OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
+      final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
       final response = await adapter.complete(_request());
       expect(response.toolArguments, isNull);
       expect(response.text, '{oops');
@@ -112,8 +110,7 @@ void main() {
     test('throws AdapterException on non-2xx responses', () async {
       final client =
           MockClient((request) async => http.Response('rate limited', 429));
-      final adapter =
-          OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
+      final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
       await expectLater(
         adapter.complete(_request()),
         throwsA(isA<AdapterException>()
@@ -141,8 +138,8 @@ void main() {
         );
       });
 
-      final adapter = AnthropicAdapter(
-          apiKey: 'key', model: 'test-model', client: client);
+      final adapter =
+          AnthropicAdapter(apiKey: 'key', model: 'test-model', client: client);
       final response = await adapter.complete(_request());
 
       expect(response.toolArguments, {'name': 'John'});
@@ -185,6 +182,104 @@ void main() {
         adapter.complete(_request()),
         throwsA(isA<AdapterException>()
             .having((e) => e.statusCode, 'statusCode', 529)),
+      );
+    });
+
+    test('throws when the response was truncated at max_tokens', () async {
+      final client = MockClient((request) async => http.Response(
+            jsonEncode({
+              'stop_reason': 'max_tokens',
+              'content': [
+                {
+                  'type': 'tool_use',
+                  'name': 'extract',
+                  'input': {'name': 'Jo'},
+                },
+              ],
+            }),
+            200,
+          ));
+      final adapter =
+          AnthropicAdapter(apiKey: 'key', model: 'm', client: client);
+      await expectLater(
+        adapter.complete(_request()),
+        throwsA(isA<AdapterException>()
+            .having((e) => e.body, 'body', contains('max_tokens'))),
+      );
+    });
+
+    test('rejects requests with no non-system messages', () async {
+      final adapter = AnthropicAdapter(
+          apiKey: 'key',
+          model: 'm',
+          client: MockClient((r) async => http.Response('', 200)));
+      await expectLater(
+        adapter.complete(LlmRequest(
+          messages: const [Message.system('only system')],
+          toolName: 'extract',
+          toolDescription: 'd',
+          jsonSchema: Schema.object({'a': Schema.string()}).toJsonSchema(),
+        )),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  group('OpenAIAdapter response variants', () {
+    test('accepts tool arguments that are already a JSON object', () async {
+      final client = MockClient((request) async => http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {
+                    'tool_calls': [
+                      {
+                        'function': {
+                          'name': 'extract',
+                          'arguments': {'name': 'John'},
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            }),
+            200,
+          ));
+      final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
+      final response = await adapter.complete(_request());
+      expect(response.toolArguments, {'name': 'John'});
+    });
+
+    test('joins content-part arrays into text', () async {
+      final client = MockClient((request) async => http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {
+                    'content': [
+                      {'type': 'text', 'text': '{"name":'},
+                      {'type': 'text', 'text': ' "John"}'},
+                    ],
+                  },
+                },
+              ],
+            }),
+            200,
+          ));
+      final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
+      final response = await adapter.complete(_request());
+      expect(response.text, '{"name": "John"}');
+    });
+
+    test('wraps non-JSON 200 bodies in AdapterException', () async {
+      final client = MockClient(
+          (request) async => http.Response('<html>gateway error</html>', 200));
+      final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
+      await expectLater(
+        adapter.complete(_request()),
+        throwsA(isA<AdapterException>()
+            .having((e) => e.body, 'body', contains('not JSON'))),
       );
     });
   });

@@ -20,9 +20,8 @@ final class SchemaViolation {
 sealed class Schema {
   const Schema({this.description, this.isOptional = false});
 
-  /// Optional description forwarded into the JSON Schema. Models use these
-  /// to decide what to put in each field, so short concrete descriptions
-  /// measurably improve extraction quality.
+  /// Optional description forwarded into the JSON Schema. Models read
+  /// these when deciding what to put in each field.
   final String? description;
 
   /// Whether this schema may be omitted when used as an object property.
@@ -40,6 +39,8 @@ sealed class Schema {
   }
 
   /// Implementation hook for [validate]; appends problems to [out].
+  /// Call [validate] instead; this is public only so that schema types can
+  /// recurse into each other.
   void collectViolations(Object? value, String path, List<SchemaViolation> out);
 
   Map<String, Object?> _base(String type) => {
@@ -61,18 +62,23 @@ sealed class Schema {
       );
 
   /// A string, optionally constrained by length or a regular expression.
+  ///
+  /// Throws [FormatException] immediately when [pattern] is not a valid
+  /// regular expression, rather than at first validation.
   static StringSchema string({
     String? description,
     int? minLength,
     int? maxLength,
     String? pattern,
-  }) =>
-      StringSchema(
-        description: description,
-        minLength: minLength,
-        maxLength: maxLength,
-        pattern: pattern,
-      );
+  }) {
+    if (pattern != null) RegExp(pattern);
+    return StringSchema(
+      description: description,
+      minLength: minLength,
+      maxLength: maxLength,
+      pattern: pattern,
+    );
+  }
 
   /// An integer, optionally bounded by [min] and [max] (inclusive).
   static IntegerSchema integer({String? description, int? min, int? max}) =>
@@ -87,8 +93,15 @@ sealed class Schema {
       BooleanSchema(description: description);
 
   /// A string restricted to one of [values].
-  static EnumSchema enumeration(List<String> values, {String? description}) =>
-      EnumSchema(values, description: description);
+  ///
+  /// [values] must not be empty and is copied, so later changes to the
+  /// original list do not affect the schema.
+  static EnumSchema enumeration(List<String> values, {String? description}) {
+    if (values.isEmpty) {
+      throw ArgumentError.value(values, 'values', 'must not be empty');
+    }
+    return EnumSchema(List.unmodifiable(values), description: description);
+  }
 
   /// A list whose elements each match [items].
   static ListSchema list(
@@ -153,12 +166,13 @@ final class StringSchema extends Schema {
   void collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! String) {
-      out.add(SchemaViolation(path, 'expected a string, got ${_typeName(value)}'));
+      out.add(
+          SchemaViolation(path, 'expected a string, got ${_typeName(value)}'));
       return;
     }
     if (minLength != null && value.length < minLength!) {
-      out.add(SchemaViolation(
-          path, 'expected at least $minLength characters, got ${value.length}'));
+      out.add(SchemaViolation(path,
+          'expected at least $minLength characters, got ${value.length}'));
     }
     if (maxLength != null && value.length > maxLength!) {
       out.add(SchemaViolation(
@@ -171,15 +185,21 @@ final class StringSchema extends Schema {
 }
 
 /// Schema for integer values. See [Schema.integer].
+///
+/// Follows the JSON Schema definition of `integer`: numbers with a zero
+/// fractional part, such as `25.0`, are accepted. This also keeps
+/// validation consistent between the Dart VM (where `jsonDecode('25.0')`
+/// yields a `double`) and the web (where it yields an `int`).
 final class IntegerSchema extends Schema {
-  const IntegerSchema({super.description, super.isOptional, this.min, this.max});
+  const IntegerSchema(
+      {super.description, super.isOptional, this.min, this.max});
 
   final int? min;
   final int? max;
 
   /// A copy of this schema that may be omitted as an object property.
-  IntegerSchema optional() =>
-      IntegerSchema(description: description, isOptional: true, min: min, max: max);
+  IntegerSchema optional() => IntegerSchema(
+      description: description, isOptional: true, min: min, max: max);
 
   @override
   Map<String, Object?> toJsonSchema() => {
@@ -191,15 +211,20 @@ final class IntegerSchema extends Schema {
   @override
   void collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
-    if (value is! int) {
-      out.add(
-          SchemaViolation(path, 'expected an integer, got ${_typeName(value)}'));
+    final isIntegral = value is int ||
+        (value is double &&
+            value.isFinite &&
+            value.truncateToDouble() == value);
+    if (!isIntegral) {
+      out.add(SchemaViolation(
+          path, 'expected an integer, got ${_typeName(value)}'));
       return;
     }
-    if (min != null && value < min!) {
+    final number = value as num;
+    if (min != null && number < min!) {
       out.add(SchemaViolation(path, 'expected >= $min, got $value'));
     }
-    if (max != null && value > max!) {
+    if (max != null && number > max!) {
       out.add(SchemaViolation(path, 'expected <= $max, got $value'));
     }
   }
@@ -213,8 +238,8 @@ final class NumberSchema extends Schema {
   final num? max;
 
   /// A copy of this schema that may be omitted as an object property.
-  NumberSchema optional() =>
-      NumberSchema(description: description, isOptional: true, min: min, max: max);
+  NumberSchema optional() => NumberSchema(
+      description: description, isOptional: true, min: min, max: max);
 
   @override
   Map<String, Object?> toJsonSchema() => {
@@ -227,7 +252,8 @@ final class NumberSchema extends Schema {
   void collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! num) {
-      out.add(SchemaViolation(path, 'expected a number, got ${_typeName(value)}'));
+      out.add(
+          SchemaViolation(path, 'expected a number, got ${_typeName(value)}'));
       return;
     }
     if (min != null && value < min!) {
@@ -322,7 +348,8 @@ final class ListSchema extends Schema {
   void collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! List) {
-      out.add(SchemaViolation(path, 'expected a list, got ${_typeName(value)}'));
+      out.add(
+          SchemaViolation(path, 'expected a list, got ${_typeName(value)}'));
       return;
     }
     if (minItems != null && value.length < minItems!) {
@@ -397,7 +424,8 @@ final class ObjectSchema extends Schema {
         }
         continue;
       }
-      entry.value.collectViolations(value[entry.key], '$path.${entry.key}', out);
+      entry.value
+          .collectViolations(value[entry.key], '$path.${entry.key}', out);
     }
     if (!allowAdditionalProperties) {
       for (final key in value.keys) {
