@@ -66,6 +66,23 @@ try {
 |---|---|
 | `OpenAIAdapter` | OpenAI, and any OpenAI-compatible server: Ollama, LM Studio, vLLM, OpenRouter |
 | `AnthropicAdapter` | Anthropic Messages API |
+| `GeminiAdapter` | Gemini API `generateContent` |
+
+```dart
+final adapter = GeminiAdapter(
+  apiKey: Platform.environment['GEMINI_API_KEY']!,
+  model: 'gemini-2.0-flash',
+);
+```
+
+Gemini differs from the other two in two ways the adapter takes care of. Its
+`contents` only accepts the `user` and `model` roles, so an assistant message
+is sent as `model`; and system text is not a message at all, it goes in the
+top-level `systemInstruction`, so system messages are collected there. The
+schema is sent as a function declaration and forced with
+`functionCallingConfig.mode: "ANY"`. The API key travels in the
+`x-goog-api-key` header rather than the `key` query parameter, so it stays out
+of URLs and logs.
 
 Local model via Ollama:
 
@@ -107,7 +124,7 @@ Mark object properties with `.optional()` to leave them out of the
 This package does one thing: reliable typed extraction. It is not an
 agent framework and does not manage conversations, tools, or memory.
 
-Planned: streaming partial results, a Gemini adapter, MCP sampling
+Planned: streaming partial results, MCP sampling
 support, server-side strict schema modes (OpenAI structured outputs,
 Anthropic strict tool use), and an optional bridge for
 `json_serializable` classes.

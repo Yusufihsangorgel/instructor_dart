@@ -1,8 +1,9 @@
 name: instructor_dart
 description: >-
   Typed, validated structured outputs from LLMs. Build a JSON Schema in plain
-  Dart, with automatic validation and repair retries. No code generation.
-version: 0.1.2
+  Dart, with automatic validation and repair retries. Adapters for OpenAI,
+  Anthropic and Gemini. No code generation.
+version: 0.2.0
 repository: https://github.com/Yusufihsangorgel/instructor_dart
 issue_tracker: https://github.com/Yusufihsangorgel/instructor_dart/issues
 

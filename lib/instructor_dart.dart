@@ -9,6 +9,7 @@ library;
 export 'src/adapter.dart'
     show AdapterException, LlmAdapter, LlmRequest, LlmResponse;
 export 'src/adapters/anthropic_adapter.dart' show AnthropicAdapter;
+export 'src/adapters/gemini_adapter.dart' show GeminiAdapter;
 export 'src/adapters/openai_adapter.dart' show OpenAIAdapter;
 export 'src/instructor.dart'
     show ExtractionAttempt, ExtractionException, Instructor;
