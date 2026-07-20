@@ -3,7 +3,7 @@ description: >-
   Typed, validated structured outputs from LLMs. Build a JSON Schema in plain
   Dart, with validation and repair retries. Adapters for OpenAI, Anthropic and
   Gemini.
-version: 0.2.1
+version: 0.2.2
 repository: https://github.com/Yusufihsangorgel/instructor_dart
 issue_tracker: https://github.com/Yusufihsangorgel/instructor_dart/issues
 
@@ -13,6 +13,13 @@ topics:
   - openai
   - anthropic
   - ollama
+
+screenshots:
+  - description: >-
+      How an extraction runs: the model answers a forced tool call, the reply is
+       parsed and validated against the schema, and a mismatch is fed back with 
+      its errors for a retry.
+    path: doc/architecture.png
 
 environment:
   sdk: ^3.4.0
