@@ -43,6 +43,15 @@ sealed class Schema {
   /// recurse into each other.
   void collectViolations(Object? value, String path, List<SchemaViolation> out);
 
+  /// Returns [value] coerced to the Dart type this schema guarantees.
+  ///
+  /// Called only on values that have already passed [validate], so it may
+  /// assume the value conforms. The base implementation returns [value]
+  /// unchanged; numeric and container schemas override it so that an
+  /// `integer` field is always an `int` and a `number` field is always a
+  /// `double`, matching JSON Schema semantics on both the Dart VM and the web.
+  Object? normalize(Object? value) => value;
+
   Map<String, Object?> _base(String type) => {
         'type': type,
         if (description != null) 'description': description,
@@ -228,6 +237,22 @@ final class IntegerSchema extends Schema {
       out.add(SchemaViolation(path, 'expected <= $max, got $value'));
     }
   }
+
+  @override
+  Object? normalize(Object? value) {
+    // `jsonDecode('25.0')` yields a `double` on the VM but an `int` on the
+    // web; collapse integral doubles to `int` so an `integer` field is always
+    // an `int`. Values outside the safe integer range are left alone rather
+    // than converted lossily.
+    const maxSafeInteger = 9007199254740992.0; // 2^53
+    if (value is double &&
+        value.isFinite &&
+        value.truncateToDouble() == value &&
+        value.abs() <= maxSafeInteger) {
+      return value.toInt();
+    }
+    return value;
+  }
 }
 
 /// Schema for numeric values (integer or double). See [Schema.number].
@@ -263,6 +288,10 @@ final class NumberSchema extends Schema {
       out.add(SchemaViolation(path, 'expected <= $max, got $value'));
     }
   }
+
+  @override
+  Object? normalize(Object? value) =>
+      value is num ? value.toDouble() : value;
 }
 
 /// Schema for boolean values. See [Schema.boolean].
@@ -364,6 +393,11 @@ final class ListSchema extends Schema {
       items.collectViolations(value[i], '$path[$i]', out);
     }
   }
+
+  @override
+  Object? normalize(Object? value) => value is List
+      ? [for (final item in value) items.normalize(item)]
+      : value;
 }
 
 /// Schema for objects with named properties. See [Schema.object].
@@ -434,5 +468,15 @@ final class ObjectSchema extends Schema {
         }
       }
     }
+  }
+
+  @override
+  Object? normalize(Object? value) {
+    if (value is! Map) return value;
+    return <String, Object?>{
+      for (final entry in value.entries)
+        entry.key as String: properties[entry.key]?.normalize(entry.value) ??
+            entry.value,
+    };
   }
 }

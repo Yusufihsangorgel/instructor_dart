@@ -1,3 +1,12 @@
+## 0.3.0
+
+- Normalize numeric fields to the Dart type their schema promises instead of
+  coercing every integral double to `int`. A `number` field given a whole
+  value like `42` now decodes to a `double` (`42.0`), so `json['price'] as
+  double` in `fromJson` no longer throws after validation reported success; an
+  `integer` field still arrives as `int`. Adds `Schema.normalize`, called after
+  validation to do this per node type.
+
 ## 0.2.3
 
 - Shorten the screenshot description. pub.dev accepts up to 200 characters but

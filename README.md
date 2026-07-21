@@ -43,6 +43,12 @@ final person = await instructor.extract(
 4. If every attempt fails, `ExtractionException` carries the full attempt
    history: what the model said and why it was rejected.
 
+A validated object is normalized to the Dart types its schema promises. An
+`integer` field is always an `int`, even when the model wrote `25.0`; a
+`number` field is always a `double`, even when the model wrote a whole number
+like `42`. So both `json['age'] as int` and `json['price'] as double` are safe
+in `fromJson`, on the Dart VM and the web.
+
 ![Diagram of the extract loop: prompt and schema go to the model as a forced tool call, the reply is parsed and validated, a mismatch is fed back for a retry, and a valid reply becomes a typed Dart object](https://raw.githubusercontent.com/Yusufihsangorgel/instructor_dart/main/doc/architecture.png)
 
 ```dart

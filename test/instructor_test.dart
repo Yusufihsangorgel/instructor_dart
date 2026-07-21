@@ -145,6 +145,28 @@ void main() {
     expect(raw['scores'], [1, 2.5]);
   });
 
+  test('whole-valued number field decodes to double, integer stays int',
+      () async {
+    // A model often writes a whole number like 42 for a `number` field. It
+    // must arrive as a double so `json['price'] as double` in fromJson does
+    // not throw, while an `integer` field given the same value stays an int.
+    final adapter = _ScriptedAdapter([
+      const LlmResponse(toolArguments: {'price': 42, 'age': 42}),
+    ]);
+    final schema = Schema.object({
+      'price': Schema.number(),
+      'age': Schema.integer(),
+    });
+    final raw = await Instructor(adapter: adapter)
+        .extractRaw(messages: messages, schema: schema);
+    expect(raw['price'], isA<double>());
+    expect(raw['price'], 42.0);
+    expect(() => raw['price'] as double, returnsNormally);
+    expect(raw['age'], isA<int>());
+    expect(raw['age'], same(42));
+    expect(() => raw['age'] as int, returnsNormally);
+  });
+
   test('fractional doubles still fail integer validation', () async {
     final adapter = _ScriptedAdapter([
       const LlmResponse(toolArguments: {'name': 'John', 'age': 25.5}),
