@@ -9,6 +9,15 @@ final class SchemaViolation {
   final String message;
 
   @override
+  bool operator ==(Object other) =>
+      other is SchemaViolation &&
+      path == other.path &&
+      message == other.message;
+
+  @override
+  int get hashCode => Object.hash(path, message);
+
+  @override
   String toString() => '$path: $message';
 }
 
@@ -34,14 +43,15 @@ sealed class Schema {
   /// Validates [value]. Returns an empty list when the value conforms.
   List<SchemaViolation> validate(Object? value) {
     final out = <SchemaViolation>[];
-    collectViolations(value, r'$', out);
+    _collectViolations(value, r'$', out);
     return out;
   }
 
   /// Implementation hook for [validate]; appends problems to [out].
-  /// Call [validate] instead; this is public only so that schema types can
-  /// recurse into each other.
-  void collectViolations(Object? value, String path, List<SchemaViolation> out);
+  /// Every schema type lives in this library, so the recursion between them
+  /// works with this private. Callers use [validate].
+  void _collectViolations(
+      Object? value, String path, List<SchemaViolation> out);
 
   /// Returns [value] coerced to the Dart type this schema guarantees.
   ///
@@ -59,13 +69,17 @@ sealed class Schema {
 
   /// An object with named [properties]. Properties are required unless
   /// marked with `optional()`.
+  ///
+  /// [properties] is copied, so later changes to the original map do not
+  /// affect the schema, and the copy is unmodifiable: a schema cannot gain or
+  /// lose a property after the factory has checked it.
   static ObjectSchema object(
     Map<String, Schema> properties, {
     String? description,
     bool allowAdditionalProperties = false,
   }) =>
       ObjectSchema._(
-        properties,
+        Map<String, Schema>.unmodifiable(properties),
         description: description,
         allowAdditionalProperties: allowAdditionalProperties,
       );
@@ -172,7 +186,7 @@ final class StringSchema extends Schema {
       };
 
   @override
-  void collectViolations(
+  void _collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! String) {
       out.add(
@@ -218,7 +232,7 @@ final class IntegerSchema extends Schema {
       };
 
   @override
-  void collectViolations(
+  void _collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     final isIntegral = value is int ||
         (value is double &&
@@ -275,7 +289,7 @@ final class NumberSchema extends Schema {
       };
 
   @override
-  void collectViolations(
+  void _collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! num) {
       out.add(
@@ -306,7 +320,7 @@ final class BooleanSchema extends Schema {
   Map<String, Object?> toJsonSchema() => _base('boolean');
 
   @override
-  void collectViolations(
+  void _collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! bool) {
       out.add(
@@ -333,7 +347,7 @@ final class EnumSchema extends Schema {
       };
 
   @override
-  void collectViolations(
+  void _collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! String || !values.contains(value)) {
       out.add(SchemaViolation(
@@ -374,7 +388,7 @@ final class ListSchema extends Schema {
       };
 
   @override
-  void collectViolations(
+  void _collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! List) {
       out.add(
@@ -390,7 +404,7 @@ final class ListSchema extends Schema {
           path, 'expected at most $maxItems items, got ${value.length}'));
     }
     for (var i = 0; i < value.length; i++) {
-      items.collectViolations(value[i], '$path[$i]', out);
+      items._collectViolations(value[i], '$path[$i]', out);
     }
   }
 
@@ -408,6 +422,8 @@ final class ObjectSchema extends Schema {
     this.allowAdditionalProperties = false,
   });
 
+  /// The named properties, as an unmodifiable copy of the map given to
+  /// [Schema.object]. Writing to it throws.
   final Map<String, Schema> properties;
 
   /// Whether keys not listed in [properties] are tolerated. Defaults to
@@ -441,7 +457,7 @@ final class ObjectSchema extends Schema {
   }
 
   @override
-  void collectViolations(
+  void _collectViolations(
       Object? value, String path, List<SchemaViolation> out) {
     if (value is! Map) {
       out.add(
@@ -463,7 +479,7 @@ final class ObjectSchema extends Schema {
       // rather than omitting the key. Treat that the same as an absent
       // optional property instead of failing it against the leaf schema.
       if (propertyValue == null && entry.value.isOptional) continue;
-      entry.value.collectViolations(propertyValue, '$path.${entry.key}', out);
+      entry.value._collectViolations(propertyValue, '$path.${entry.key}', out);
     }
     if (!allowAdditionalProperties) {
       for (final key in value.keys) {

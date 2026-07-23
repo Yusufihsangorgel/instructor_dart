@@ -19,5 +19,12 @@ final class Message {
   final String content;
 
   @override
+  bool operator ==(Object other) =>
+      other is Message && role == other.role && content == other.content;
+
+  @override
+  int get hashCode => Object.hash(role, content);
+
+  @override
   String toString() => '${role.name}: $content';
 }

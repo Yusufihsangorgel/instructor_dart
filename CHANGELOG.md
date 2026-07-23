@@ -1,3 +1,34 @@
+## 0.5.0
+
+The last things to settle before this can freeze at 1.0.0, all found by
+re-reviewing the public surface against what a permanent contract would fix.
+
+- Stop `Schema.object` aliasing the caller's map. It stored the exact map
+  passed in, so `Schema.object(props)` followed by `props['x'] = ...` changed
+  the schema afterwards, and `schema.properties` was itself writable, both
+  bypassing every check the factory does and changing what `validate` demands.
+  This is the same escape hatch 0.4.0 closed for the constructors, left open in
+  one more place. `Schema.object` now copies into an unmodifiable map, matching
+  what `Schema.enumeration` already documents and does for its list. Breaking
+  only for code that mutated a schema through that aliasing, which was never
+  intended to work.
+- Make `collectViolations` private. It was public with a note that it had to
+  be, "so that schema types can recurse into each other". That was not true:
+  `Schema` is `sealed` and every schema type lives in the one library, so the
+  recursion works with it private, and Dart privacy is per-library. Public, it
+  froze an internal accumulator hook, its out-parameter list and its
+  seed-the-path convention, into the 1.0.0 contract. `validate` is the
+  supported entry point and is unchanged.
+- Give `SchemaViolation` and `Message` value equality. Both are small
+  immutable value types that callers naturally compare and put in sets:
+  deduplicating the violations across `ExtractionException.attempts`, or
+  asserting on `LlmRequest.messages` in an adapter test. `Message` was worse
+  than missing equality, it was inconsistent: two `const` identical messages
+  compared equal through canonicalization while two runtime-built identical
+  ones did not. Both now compare by value. Adding this after 1.0.0 would
+  silently change how existing sets and maps of these types dedup, so it lands
+  now.
+
 ## 0.4.0
 
 - Make the concrete schema constructors library-private so the validating
