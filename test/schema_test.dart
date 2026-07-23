@@ -149,6 +149,60 @@ void main() {
       expect(violations.single.message, 'unexpected property');
     });
 
+    test('treats an explicit null on an optional property as absent', () {
+      expect(
+        schema.validate({
+          'name': 'Ada',
+          'age': 36,
+          'role': 'admin',
+          'tags': ['math'],
+          'address': null,
+        }),
+        isEmpty,
+      );
+    });
+
+    test('still rejects an explicit null on a required property', () {
+      final violations = schema.validate({
+        'name': null,
+        'age': 36,
+        'role': 'admin',
+        'tags': ['math'],
+      });
+      expect(violations.single.path, r'$.name');
+      expect(violations.single.message, contains('got null'));
+    });
+
+    test('treats null on every optional leaf schema kind as absent', () {
+      // Forced tool calling on OpenAI, Anthropic and Gemini fills in every
+      // declared parameter and represents "no value" as an explicit `null`
+      // rather than omitting the key, so this must hold for every schema
+      // type, not just the one that happens to be exercised elsewhere.
+      final s = Schema.object({
+        'name': Schema.string(),
+        'city': Schema.string().optional(),
+        'nickname': Schema.enumeration(['a', 'b']).optional(),
+        'score': Schema.number().optional(),
+        'count': Schema.integer().optional(),
+        'active': Schema.boolean().optional(),
+        'tags': Schema.list(Schema.string()).optional(),
+        'address': Schema.object({'street': Schema.string()}).optional(),
+      });
+      expect(
+        s.validate({
+          'name': 'Ada',
+          'city': null,
+          'nickname': null,
+          'score': null,
+          'count': null,
+          'active': null,
+          'tags': null,
+          'address': null,
+        }),
+        isEmpty,
+      );
+    });
+
     test('tolerates unexpected properties when allowed', () {
       final open = Schema.object(
         {'name': Schema.string()},

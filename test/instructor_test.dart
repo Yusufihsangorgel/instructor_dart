@@ -167,6 +167,26 @@ void main() {
     expect(() => raw['age'] as int, returnsNormally);
   });
 
+  test('accepts an explicit null on an optional field without retrying',
+      () async {
+    // Forced tool calling on OpenAI, Anthropic and Gemini fills in every
+    // declared parameter; a field the model has no value for arrives as an
+    // explicit `null` rather than an omitted key.
+    final adapter = _ScriptedAdapter([
+      const LlmResponse(
+          toolArguments: {'name': 'John', 'age': 25, 'city': null}),
+    ]);
+    final withCity = Schema.object({
+      'name': Schema.string(),
+      'age': Schema.integer(min: 0),
+      'city': Schema.string().optional(),
+    });
+    final raw = await Instructor(adapter: adapter)
+        .extractRaw(messages: messages, schema: withCity);
+    expect(raw, {'name': 'John', 'age': 25, 'city': null});
+    expect(adapter.requests, hasLength(1));
+  });
+
   test('fractional doubles still fail integer validation', () async {
     final adapter = _ScriptedAdapter([
       const LlmResponse(toolArguments: {'name': 'John', 'age': 25.5}),

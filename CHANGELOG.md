@@ -1,3 +1,15 @@
+## 0.3.1
+
+- Fix `.optional()` rejecting an explicit JSON `null` on the property it was
+  applied to. `.optional()` only removed the key from the JSON Schema
+  `required` list, so a key present with value `null` still fell through to
+  the leaf schema's type check and failed as a type mismatch instead of being
+  treated as absent. Forced tool calling on OpenAI, Anthropic and Gemini
+  regularly fills in every declared parameter and represents "no value" as
+  `null` rather than omitting the key, so this broke `.optional()` for
+  exactly the case it exists for. A required property given `null` is still
+  reported as a violation.
+
 ## 0.3.0
 
 - Normalize numeric fields to the Dart type their schema promises instead of

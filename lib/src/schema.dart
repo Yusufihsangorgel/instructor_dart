@@ -456,8 +456,13 @@ final class ObjectSchema extends Schema {
         }
         continue;
       }
-      entry.value
-          .collectViolations(value[entry.key], '$path.${entry.key}', out);
+      final propertyValue = value[entry.key];
+      // Forced tool calling on OpenAI, Anthropic and Gemini fills in every
+      // declared parameter and represents "no value" as an explicit `null`
+      // rather than omitting the key. Treat that the same as an absent
+      // optional property instead of failing it against the leaf schema.
+      if (propertyValue == null && entry.value.isOptional) continue;
+      entry.value.collectViolations(propertyValue, '$path.${entry.key}', out);
     }
     if (!allowAdditionalProperties) {
       for (final key in value.keys) {
