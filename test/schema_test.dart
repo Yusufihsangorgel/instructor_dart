@@ -243,5 +243,17 @@ void main() {
       values.add('c');
       expect((s.toJsonSchema()['enum'] as List), ['a', 'b']);
     });
+
+    test('concrete schema types are built only through the factories', () {
+      // The concrete constructors are library-private, so the validating
+      // factories are the only construction path from outside the library; a
+      // direct `StringSchema(pattern: '(')` or `EnumSchema([])` can no longer
+      // skip the checks below. The concrete types stay public for return-type,
+      // `switch`, and field access.
+      expect(Schema.string(pattern: r'^\d+$'), isA<StringSchema>());
+      expect(Schema.enumeration(['a', 'b']), isA<EnumSchema>());
+      expect(() => Schema.string(pattern: '('), throwsFormatException);
+      expect(() => Schema.enumeration(<String>[]), throwsArgumentError);
+    });
   });
 }

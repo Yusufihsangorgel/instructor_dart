@@ -1,3 +1,18 @@
+## 0.4.0
+
+- Make the concrete schema constructors library-private so the validating
+  `Schema.*` factories are the only way to build a schema. Breaking change:
+  `StringSchema(...)`, `IntegerSchema(...)`, `NumberSchema(...)`,
+  `BooleanSchema(...)`, `EnumSchema(...)`, `ListSchema(...)` and
+  `ObjectSchema(...)` can no longer be called directly; use `Schema.string`,
+  `Schema.integer`, `Schema.number`, `Schema.boolean`, `Schema.enumeration`,
+  `Schema.list` and `Schema.object` instead. The concrete types stay exported
+  for use in return types, `switch`, and field access, and `.optional()`
+  still returns the same concrete type. This closes a construction path that
+  skipped the factory checks: `Schema.string` rejects an invalid regular
+  expression and `Schema.enumeration` rejects an empty list and copies its
+  values, and a direct constructor call bypassed both.
+
 ## 0.3.1
 
 - Fix `.optional()` rejecting an explicit JSON `null` on the property it was

@@ -64,7 +64,7 @@ sealed class Schema {
     String? description,
     bool allowAdditionalProperties = false,
   }) =>
-      ObjectSchema(
+      ObjectSchema._(
         properties,
         description: description,
         allowAdditionalProperties: allowAdditionalProperties,
@@ -81,7 +81,7 @@ sealed class Schema {
     String? pattern,
   }) {
     if (pattern != null) RegExp(pattern);
-    return StringSchema(
+    return StringSchema._(
       description: description,
       minLength: minLength,
       maxLength: maxLength,
@@ -91,15 +91,15 @@ sealed class Schema {
 
   /// An integer, optionally bounded by [min] and [max] (inclusive).
   static IntegerSchema integer({String? description, int? min, int? max}) =>
-      IntegerSchema(description: description, min: min, max: max);
+      IntegerSchema._(description: description, min: min, max: max);
 
   /// A number (integer or double), optionally bounded (inclusive).
   static NumberSchema number({String? description, num? min, num? max}) =>
-      NumberSchema(description: description, min: min, max: max);
+      NumberSchema._(description: description, min: min, max: max);
 
   /// A boolean.
   static BooleanSchema boolean({String? description}) =>
-      BooleanSchema(description: description);
+      BooleanSchema._(description: description);
 
   /// A string restricted to one of [values].
   ///
@@ -109,7 +109,7 @@ sealed class Schema {
     if (values.isEmpty) {
       throw ArgumentError.value(values, 'values', 'must not be empty');
     }
-    return EnumSchema(List.unmodifiable(values), description: description);
+    return EnumSchema._(List.unmodifiable(values), description: description);
   }
 
   /// A list whose elements each match [items].
@@ -119,7 +119,7 @@ sealed class Schema {
     int? minItems,
     int? maxItems,
   }) =>
-      ListSchema(
+      ListSchema._(
         items,
         description: description,
         minItems: minItems,
@@ -140,7 +140,7 @@ String _typeName(Object? value) => switch (value) {
 
 /// Schema for string values. See [Schema.string].
 final class StringSchema extends Schema {
-  const StringSchema({
+  const StringSchema._({
     super.description,
     super.isOptional,
     this.minLength,
@@ -155,7 +155,7 @@ final class StringSchema extends Schema {
   final String? pattern;
 
   /// A copy of this schema that may be omitted as an object property.
-  StringSchema optional() => StringSchema(
+  StringSchema optional() => StringSchema._(
         description: description,
         isOptional: true,
         minLength: minLength,
@@ -200,14 +200,14 @@ final class StringSchema extends Schema {
 /// validation consistent between the Dart VM (where `jsonDecode('25.0')`
 /// yields a `double`) and the web (where it yields an `int`).
 final class IntegerSchema extends Schema {
-  const IntegerSchema(
+  const IntegerSchema._(
       {super.description, super.isOptional, this.min, this.max});
 
   final int? min;
   final int? max;
 
   /// A copy of this schema that may be omitted as an object property.
-  IntegerSchema optional() => IntegerSchema(
+  IntegerSchema optional() => IntegerSchema._(
       description: description, isOptional: true, min: min, max: max);
 
   @override
@@ -257,13 +257,14 @@ final class IntegerSchema extends Schema {
 
 /// Schema for numeric values (integer or double). See [Schema.number].
 final class NumberSchema extends Schema {
-  const NumberSchema({super.description, super.isOptional, this.min, this.max});
+  const NumberSchema._(
+      {super.description, super.isOptional, this.min, this.max});
 
   final num? min;
   final num? max;
 
   /// A copy of this schema that may be omitted as an object property.
-  NumberSchema optional() => NumberSchema(
+  NumberSchema optional() => NumberSchema._(
       description: description, isOptional: true, min: min, max: max);
 
   @override
@@ -295,11 +296,11 @@ final class NumberSchema extends Schema {
 
 /// Schema for boolean values. See [Schema.boolean].
 final class BooleanSchema extends Schema {
-  const BooleanSchema({super.description, super.isOptional});
+  const BooleanSchema._({super.description, super.isOptional});
 
   /// A copy of this schema that may be omitted as an object property.
   BooleanSchema optional() =>
-      BooleanSchema(description: description, isOptional: true);
+      BooleanSchema._(description: description, isOptional: true);
 
   @override
   Map<String, Object?> toJsonSchema() => _base('boolean');
@@ -317,13 +318,13 @@ final class BooleanSchema extends Schema {
 /// Schema for a string restricted to a fixed set of values.
 /// See [Schema.enumeration].
 final class EnumSchema extends Schema {
-  const EnumSchema(this.values, {super.description, super.isOptional});
+  const EnumSchema._(this.values, {super.description, super.isOptional});
 
   final List<String> values;
 
   /// A copy of this schema that may be omitted as an object property.
   EnumSchema optional() =>
-      EnumSchema(values, description: description, isOptional: true);
+      EnumSchema._(values, description: description, isOptional: true);
 
   @override
   Map<String, Object?> toJsonSchema() => {
@@ -343,7 +344,7 @@ final class EnumSchema extends Schema {
 
 /// Schema for lists. See [Schema.list].
 final class ListSchema extends Schema {
-  const ListSchema(
+  const ListSchema._(
     this.items, {
     super.description,
     super.isOptional,
@@ -356,7 +357,7 @@ final class ListSchema extends Schema {
   final int? maxItems;
 
   /// A copy of this schema that may be omitted as an object property.
-  ListSchema optional() => ListSchema(
+  ListSchema optional() => ListSchema._(
         items,
         description: description,
         isOptional: true,
@@ -400,7 +401,7 @@ final class ListSchema extends Schema {
 
 /// Schema for objects with named properties. See [Schema.object].
 final class ObjectSchema extends Schema {
-  const ObjectSchema(
+  const ObjectSchema._(
     this.properties, {
     super.description,
     super.isOptional,
@@ -415,7 +416,7 @@ final class ObjectSchema extends Schema {
   final bool allowAdditionalProperties;
 
   /// A copy of this schema that may be omitted as an object property.
-  ObjectSchema optional() => ObjectSchema(
+  ObjectSchema optional() => ObjectSchema._(
         properties,
         description: description,
         isOptional: true,
