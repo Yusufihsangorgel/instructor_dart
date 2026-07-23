@@ -89,8 +89,8 @@ void main() {
       ]);
 
       // The schema rides as a function declaration, forced with mode ANY.
-      final declaration =
-          ((body['tools'] as List).first as Map)['functionDeclarations'] as List;
+      final declaration = ((body['tools'] as List).first
+          as Map)['functionDeclarations'] as List;
       expect((declaration.first as Map)['name'], 'extract');
       expect((declaration.first as Map)['description'],
           'Record the extracted data.');

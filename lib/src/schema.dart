@@ -290,8 +290,7 @@ final class NumberSchema extends Schema {
   }
 
   @override
-  Object? normalize(Object? value) =>
-      value is num ? value.toDouble() : value;
+  Object? normalize(Object? value) => value is num ? value.toDouble() : value;
 }
 
 /// Schema for boolean values. See [Schema.boolean].
@@ -395,9 +394,8 @@ final class ListSchema extends Schema {
   }
 
   @override
-  Object? normalize(Object? value) => value is List
-      ? [for (final item in value) items.normalize(item)]
-      : value;
+  Object? normalize(Object? value) =>
+      value is List ? [for (final item in value) items.normalize(item)] : value;
 }
 
 /// Schema for objects with named properties. See [Schema.object].
@@ -475,8 +473,8 @@ final class ObjectSchema extends Schema {
     if (value is! Map) return value;
     return <String, Object?>{
       for (final entry in value.entries)
-        entry.key as String: properties[entry.key]?.normalize(entry.value) ??
-            entry.value,
+        entry.key as String:
+            properties[entry.key]?.normalize(entry.value) ?? entry.value,
     };
   }
 }
