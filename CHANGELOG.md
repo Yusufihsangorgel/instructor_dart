@@ -1,3 +1,25 @@
+## 1.0.0
+
+The API is stable. One freeze-cleanliness gap was found by adversarially testing
+the package rather than reading it, and it is fixed here.
+
+- **`LlmRequest` now copies its `messages` and `jsonSchema`.** They aliased the
+  list and map you passed in, so mutating them afterwards changed a request an
+  adapter was about to send. They are now copied to unmodifiable collections
+  (matching `Schema.enumeration`, which already copied its values). The
+  constructor is no longer `const`, which is only breaking for a `const
+  LlmRequest(...)` call — impossible in practice, since the messages and schema
+  are runtime values.
+
+Everything else was verified by execution and left unchanged: a 2xx response
+with an unexpected nested shape becomes an `AdapterException` (not a raw
+`TypeError`), a transport failure becomes `AdapterException.transport`, an
+extraction that fails every retry throws `ExtractionException` carrying the
+attempt history, `close()` is idempotent, and schema validation rejects a wrong
+type, an out-of-range integer, a missing required field, and an unknown field.
+`LlmAdapter` is a growable `abstract base class` so streaming can be added
+later without breaking implementers; the only runtime dependency is `http`.
+
 ## 0.7.1
 
 - Add `example/mock_extract.dart` and `example/README.md`. The Example tab was

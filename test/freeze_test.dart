@@ -62,4 +62,28 @@ void main() {
       expect(base, isNot(const Message.user('bye')));
     });
   });
+
+  group('LlmRequest', () {
+    test('copies the messages and jsonSchema it is given', () {
+      final messages = [const Message.user('hi')];
+      final schema = <String, Object?>{'type': 'object'};
+      final req = LlmRequest(
+        messages: messages,
+        toolName: 't',
+        toolDescription: 'd',
+        jsonSchema: schema,
+      );
+
+      // Mutating the caller's collections must not change the request.
+      messages.add(const Message.user('injected'));
+      schema['injected'] = true;
+      expect(req.messages, hasLength(1));
+      expect(req.jsonSchema.containsKey('injected'), isFalse);
+
+      // And the request's own copies are unmodifiable.
+      expect(() => req.messages.add(const Message.user('x')),
+          throwsUnsupportedError);
+      expect(() => req.jsonSchema['x'] = 1, throwsUnsupportedError);
+    });
+  });
 }

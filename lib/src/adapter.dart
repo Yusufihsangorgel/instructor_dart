@@ -6,12 +6,15 @@ import 'message.dart';
 /// presented to the model as a tool/function call named [toolName], forced
 /// via the provider's tool-choice mechanism where the server supports it.
 final class LlmRequest {
-  const LlmRequest({
-    required this.messages,
+  /// [messages] and [jsonSchema] are copied, so mutating what you pass in
+  /// afterwards does not change the request an adapter is about to send.
+  LlmRequest({
+    required List<Message> messages,
     required this.toolName,
     required this.toolDescription,
-    required this.jsonSchema,
-  });
+    required Map<String, Object?> jsonSchema,
+  })  : messages = List.unmodifiable(messages),
+        jsonSchema = Map.unmodifiable(jsonSchema);
 
   final List<Message> messages;
   final String toolName;
