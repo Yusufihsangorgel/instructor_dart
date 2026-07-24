@@ -60,13 +60,41 @@ abstract base class LlmAdapter {
   void close() {}
 }
 
-/// Error from the provider's HTTP API (non-2xx response).
+/// The error type every adapter reports, so a caller can write a single
+/// `on AdapterException catch (e)` around a `complete` call.
+///
+/// It covers three ways a request can fail: the provider answered with a non-2xx
+/// status, the provider answered 2xx but with a body this adapter could not make
+/// sense of, and the request never got an answer at all (the connection dropped,
+/// timed out, or the client was closed). The last of those has no status code,
+/// which is why [statusCode] is nullable and [AdapterException.transport] exists.
 final class AdapterException implements Exception {
-  const AdapterException(this.statusCode, this.body);
+  /// A response arrived, but it was an error status or a shape the adapter
+  /// could not read. [statusCode] is the HTTP status.
+  const AdapterException(int this.statusCode, this.body, {this.cause});
 
-  final int statusCode;
+  /// No usable response arrived: the connection failed, timed out, or the
+  /// client was already closed. There is no [statusCode].
+  const AdapterException.transport(this.body, {this.cause}) : statusCode = null;
+
+  /// The HTTP status, or `null` when the failure was at the transport layer
+  /// (see [AdapterException.transport]).
+  final int? statusCode;
+
+  /// A human-readable description of what went wrong, including the response
+  /// body where there was one.
   final String body;
 
+  /// The underlying error this wraps, when there was one — a `SocketException`
+  /// from a dropped connection, a `TypeError` from an unexpected response shape.
+  /// Kept for logging; its type is deliberately not part of the contract, so do
+  /// not switch on it.
+  final Object? cause;
+
   @override
-  String toString() => 'AdapterException($statusCode): $body';
+  String toString() {
+    final where = statusCode == null ? 'transport' : '$statusCode';
+    final why = cause == null ? '' : ' ($cause)';
+    return 'AdapterException($where): $body$why';
+  }
 }

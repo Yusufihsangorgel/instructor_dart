@@ -65,31 +65,39 @@ final class AnthropicAdapter extends LlmAdapter {
           'request.messages must contain at least one non-system message');
     }
 
-    final response = await _client
-        .post(
-          Uri.parse('$_baseUrl/v1/messages'),
-          headers: {
-            'x-api-key': _apiKey,
-            'anthropic-version': _apiVersion,
-            'content-type': 'application/json',
-          },
-          body: jsonEncode({
-            'model': model,
-            'max_tokens': maxTokens,
-            if (temperature != null) 'temperature': temperature,
-            if (system.isNotEmpty) 'system': system,
-            'messages': chat,
-            'tools': [
-              {
-                'name': request.toolName,
-                'description': request.toolDescription,
-                'input_schema': request.jsonSchema,
-              },
-            ],
-            'tool_choice': {'type': 'tool', 'name': request.toolName},
-          }),
-        )
-        .timeout(timeout);
+    final http.Response response;
+    try {
+      response = await _client
+          .post(
+            Uri.parse('$_baseUrl/v1/messages'),
+            headers: {
+              'x-api-key': _apiKey,
+              'anthropic-version': _apiVersion,
+              'content-type': 'application/json',
+            },
+            body: jsonEncode({
+              'model': model,
+              'max_tokens': maxTokens,
+              if (temperature != null) 'temperature': temperature,
+              if (system.isNotEmpty) 'system': system,
+              'messages': chat,
+              'tools': [
+                {
+                  'name': request.toolName,
+                  'description': request.toolDescription,
+                  'input_schema': request.jsonSchema,
+                },
+              ],
+              'tool_choice': {'type': 'tool', 'name': request.toolName},
+            }),
+          )
+          .timeout(timeout);
+    } on AdapterException {
+      rethrow;
+    } catch (e) {
+      throw AdapterException.transport('request to the Anthropic API failed',
+          cause: e);
+    }
     final body = utf8.decode(response.bodyBytes);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw AdapterException(response.statusCode, body);
@@ -106,30 +114,38 @@ final class AnthropicAdapter extends LlmAdapter {
       throw AdapterException(
           response.statusCode, 'unexpected response shape: $body');
     }
-    final json = decoded;
-    if (json['stop_reason'] == 'max_tokens') {
-      throw AdapterException(
-          response.statusCode,
-          'response truncated at max_tokens=$maxTokens; '
-          'raise AnthropicAdapter.maxTokens');
-    }
-    final content = json['content'] as List?;
-    if (content == null) return const LlmResponse();
+    // Any cast mismatch on a 2xx body becomes an AdapterException rather than a
+    // raw TypeError the caller cannot catch by type.
+    try {
+      final json = decoded;
+      if (json['stop_reason'] == 'max_tokens') {
+        throw AdapterException(
+            response.statusCode,
+            'response truncated at max_tokens=$maxTokens; '
+            'raise AnthropicAdapter.maxTokens');
+      }
+      final content = json['content'] as List?;
+      if (content == null) return const LlmResponse();
 
-    for (final block in content) {
-      if (block is Map<String, dynamic> && block['type'] == 'tool_use') {
-        final input = block['input'];
-        if (input is Map<String, dynamic>) {
-          return LlmResponse(toolArguments: input.cast<String, Object?>());
+      for (final block in content) {
+        if (block is Map<String, dynamic> && block['type'] == 'tool_use') {
+          final input = block['input'];
+          if (input is Map<String, dynamic>) {
+            return LlmResponse(toolArguments: input.cast<String, Object?>());
+          }
         }
       }
+      final text = [
+        for (final block in content)
+          if (block is Map<String, dynamic> && block['type'] == 'text')
+            block['text'] as String? ?? '',
+      ].join();
+      return LlmResponse(text: text.isEmpty ? null : text);
+    } on TypeError catch (e) {
+      throw AdapterException(
+          response.statusCode, 'unexpected response shape: $body',
+          cause: e);
     }
-    final text = [
-      for (final block in content)
-        if (block is Map<String, dynamic> && block['type'] == 'text')
-          block['text'] as String? ?? '',
-    ].join();
-    return LlmResponse(text: text.isEmpty ? null : text);
   }
 
   /// Closes the underlying HTTP client if this adapter created it.

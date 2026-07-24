@@ -55,11 +55,18 @@ sealed class Schema {
 
   /// Returns [value] coerced to the Dart type this schema guarantees.
   ///
-  /// Called only on values that have already passed [validate], so it may
-  /// assume the value conforms. The base implementation returns [value]
-  /// unchanged; numeric and container schemas override it so that an
-  /// `integer` field is always an `int` and a `number` field is always a
-  /// `double`, matching JSON Schema semantics on both the Dart VM and the web.
+  /// Call it only on a value that has already passed [validate]; it assumes the
+  /// value conforms and does no re-checking (it does not throw on a value that
+  /// did not — it passes non-conforming input through unchanged). The base
+  /// implementation returns [value] as-is; numeric and container schemas
+  /// override it so an `integer` field is an `int` and a `number` field is a
+  /// `double` on both the Dart VM and the web.
+  ///
+  /// The one value it cannot coerce is an integer beyond 2^53: `double` can no
+  /// longer represent every integer there, so such a value is left a `double`
+  /// rather than converted lossily, and reading it as `int` would throw. Model
+  /// a field that can hold a snowflake id or a nanosecond timestamp as a
+  /// `number` or a string.
   Object? normalize(Object? value) => value;
 
   Map<String, Object?> _base(String type) => {

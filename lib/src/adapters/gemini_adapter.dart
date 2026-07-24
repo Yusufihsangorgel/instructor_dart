@@ -72,43 +72,51 @@ final class GeminiAdapter extends LlmAdapter {
           },
     ];
 
-    final response = await _client
-        .post(
-          Uri.parse('$_baseUrl/models/$model:generateContent'),
-          headers: {
-            'x-goog-api-key': _apiKey,
-            'content-type': 'application/json',
-          },
-          body: jsonEncode({
-            'contents': contents,
-            if (systemText.isNotEmpty)
-              'systemInstruction': {
-                'parts': [
-                  {'text': systemText},
-                ],
-              },
-            'tools': [
-              {
-                'functionDeclarations': [
-                  {
-                    'name': request.toolName,
-                    'description': request.toolDescription,
-                    'parameters': request.jsonSchema,
-                  },
-                ],
-              },
-            ],
-            'toolConfig': {
-              'functionCallingConfig': {
-                'mode': 'ANY',
-                'allowedFunctionNames': [request.toolName],
-              },
+    final http.Response response;
+    try {
+      response = await _client
+          .post(
+            Uri.parse('$_baseUrl/models/$model:generateContent'),
+            headers: {
+              'x-goog-api-key': _apiKey,
+              'content-type': 'application/json',
             },
-            if (temperature != null)
-              'generationConfig': {'temperature': temperature},
-          }),
-        )
-        .timeout(timeout);
+            body: jsonEncode({
+              'contents': contents,
+              if (systemText.isNotEmpty)
+                'systemInstruction': {
+                  'parts': [
+                    {'text': systemText},
+                  ],
+                },
+              'tools': [
+                {
+                  'functionDeclarations': [
+                    {
+                      'name': request.toolName,
+                      'description': request.toolDescription,
+                      'parameters': request.jsonSchema,
+                    },
+                  ],
+                },
+              ],
+              'toolConfig': {
+                'functionCallingConfig': {
+                  'mode': 'ANY',
+                  'allowedFunctionNames': [request.toolName],
+                },
+              },
+              if (temperature != null)
+                'generationConfig': {'temperature': temperature},
+            }),
+          )
+          .timeout(timeout);
+    } on AdapterException {
+      rethrow;
+    } catch (e) {
+      throw AdapterException.transport('request to the Gemini API failed',
+          cause: e);
+    }
 
     final body = utf8.decode(response.bodyBytes);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -131,35 +139,45 @@ final class GeminiAdapter extends LlmAdapter {
       );
     }
 
-    final candidates = decoded['candidates'] as List?;
-    if (candidates == null || candidates.isEmpty) return const LlmResponse();
-    final first = candidates.first;
-    if (first is! Map<String, dynamic>) return const LlmResponse();
-    final content = first['content'];
-    if (content is! Map<String, dynamic>) return const LlmResponse();
-    final parts = content['parts'] as List?;
-    if (parts == null || parts.isEmpty) return const LlmResponse();
+    // A `candidates` or `parts` that is not a list would throw a raw TypeError
+    // on the casts below; report it as an AdapterException like every other
+    // shape mismatch.
+    try {
+      final candidates = decoded['candidates'] as List?;
+      if (candidates == null || candidates.isEmpty) return const LlmResponse();
+      final first = candidates.first;
+      if (first is! Map<String, dynamic>) return const LlmResponse();
+      final content = first['content'];
+      if (content is! Map<String, dynamic>) return const LlmResponse();
+      final parts = content['parts'] as List?;
+      if (parts == null || parts.isEmpty) return const LlmResponse();
 
-    // A forced call puts the arguments in a functionCall part. Take the first
-    // one; text parts alongside it are commentary the caller does not need.
-    for (final part in parts) {
-      if (part is! Map<String, dynamic>) continue;
-      final call = part['functionCall'];
-      if (call is Map<String, dynamic>) {
-        final arguments = call['args'];
-        if (arguments is Map<String, dynamic>) {
-          return LlmResponse(toolArguments: arguments.cast<String, Object?>());
+      // A forced call puts the arguments in a functionCall part. Take the first
+      // one; text parts alongside it are commentary the caller does not need.
+      for (final part in parts) {
+        if (part is! Map<String, dynamic>) continue;
+        final call = part['functionCall'];
+        if (call is Map<String, dynamic>) {
+          final arguments = call['args'];
+          if (arguments is Map<String, dynamic>) {
+            return LlmResponse(
+                toolArguments: arguments.cast<String, Object?>());
+          }
         }
       }
-    }
 
-    // No call: hand back the text so the caller can try to repair it.
-    final text = [
-      for (final part in parts)
-        if (part is Map<String, dynamic> && part['text'] is String)
-          part['text'] as String,
-    ].join();
-    return LlmResponse(text: text.isEmpty ? null : text);
+      // No call: hand back the text so the caller can try to repair it.
+      final text = [
+        for (final part in parts)
+          if (part is Map<String, dynamic> && part['text'] is String)
+            part['text'] as String,
+      ].join();
+      return LlmResponse(text: text.isEmpty ? null : text);
+    } on TypeError catch (e) {
+      throw AdapterException(
+          response.statusCode, 'unexpected response shape: $body',
+          cause: e);
+    }
   }
 
   /// Closes the underlying HTTP client if this adapter created it.

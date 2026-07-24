@@ -43,37 +43,48 @@ final class OpenAIAdapter extends LlmAdapter {
 
   @override
   Future<LlmResponse> complete(LlmRequest request) async {
-    final response = await _client
-        .post(
-          Uri.parse('$_baseUrl/chat/completions'),
-          headers: {
-            'authorization': 'Bearer $_apiKey',
-            'content-type': 'application/json',
-          },
-          body: jsonEncode({
-            'model': model,
-            if (temperature != null) 'temperature': temperature,
-            'messages': [
-              for (final message in request.messages)
-                {'role': message.role.name, 'content': message.content},
-            ],
-            'tools': [
-              {
-                'type': 'function',
-                'function': {
-                  'name': request.toolName,
-                  'description': request.toolDescription,
-                  'parameters': request.jsonSchema,
-                },
-              },
-            ],
-            'tool_choice': {
-              'type': 'function',
-              'function': {'name': request.toolName},
+    final http.Response response;
+    try {
+      response = await _client
+          .post(
+            Uri.parse('$_baseUrl/chat/completions'),
+            headers: {
+              'authorization': 'Bearer $_apiKey',
+              'content-type': 'application/json',
             },
-          }),
-        )
-        .timeout(timeout);
+            body: jsonEncode({
+              'model': model,
+              if (temperature != null) 'temperature': temperature,
+              'messages': [
+                for (final message in request.messages)
+                  {'role': message.role.name, 'content': message.content},
+              ],
+              'tools': [
+                {
+                  'type': 'function',
+                  'function': {
+                    'name': request.toolName,
+                    'description': request.toolDescription,
+                    'parameters': request.jsonSchema,
+                  },
+                },
+              ],
+              'tool_choice': {
+                'type': 'function',
+                'function': {'name': request.toolName},
+              },
+            }),
+          )
+          .timeout(timeout);
+    } on AdapterException {
+      rethrow;
+    } catch (e) {
+      // A dropped connection, a timeout, or a closed client: no response, so
+      // no status code. package:http and dart:io report these as several
+      // different types; funnel them all into one the caller can catch.
+      throw AdapterException.transport('request to the OpenAI API failed',
+          cause: e);
+    }
     final body = utf8.decode(response.bodyBytes);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw AdapterException(response.statusCode, body);
@@ -90,49 +101,60 @@ final class OpenAIAdapter extends LlmAdapter {
       throw AdapterException(
           response.statusCode, 'unexpected response shape: $body');
     }
-    final json = decoded;
-    final choices = json['choices'] as List?;
-    if (choices == null || choices.isEmpty) {
-      return const LlmResponse();
-    }
-    final message = (choices.first as Map<String, dynamic>)['message']
-        as Map<String, dynamic>?;
-    if (message == null) return const LlmResponse();
-
-    final toolCalls = message['tool_calls'] as List?;
-    if (toolCalls != null && toolCalls.isNotEmpty) {
-      final function = (toolCalls.first as Map<String, dynamic>)['function']
+    // The nested reads below cast into the shape a spec-compliant server sends.
+    // A compatible server (Ollama, LM Studio, vLLM, OpenRouter) can differ, and
+    // an unguarded cast on a 2xx body would surface as a raw TypeError the
+    // caller cannot catch by type; turn any such mismatch into an
+    // AdapterException, the same as the top-level shape check above.
+    try {
+      final json = decoded;
+      final choices = json['choices'] as List?;
+      if (choices == null || choices.isEmpty) {
+        return const LlmResponse();
+      }
+      final message = (choices.first as Map<String, dynamic>)['message']
           as Map<String, dynamic>?;
-      final arguments = function?['arguments'];
-      // Per spec `arguments` is a JSON string, but some compatible servers
-      // send an already-parsed object.
-      if (arguments is Map<String, dynamic>) {
-        return LlmResponse(toolArguments: arguments.cast<String, Object?>());
-      }
-      if (arguments is String) {
-        try {
-          final parsed = jsonDecode(arguments);
-          if (parsed is Map<String, dynamic>) {
-            return LlmResponse(toolArguments: parsed.cast<String, Object?>());
-          }
-        } on FormatException {
-          // Malformed arguments; fall through and let the caller repair.
+      if (message == null) return const LlmResponse();
+
+      final toolCalls = message['tool_calls'] as List?;
+      if (toolCalls != null && toolCalls.isNotEmpty) {
+        final function = (toolCalls.first as Map<String, dynamic>)['function']
+            as Map<String, dynamic>?;
+        final arguments = function?['arguments'];
+        // Per spec `arguments` is a JSON string, but some compatible servers
+        // send an already-parsed object.
+        if (arguments is Map<String, dynamic>) {
+          return LlmResponse(toolArguments: arguments.cast<String, Object?>());
         }
-        return LlmResponse(text: arguments);
+        if (arguments is String) {
+          try {
+            final parsed = jsonDecode(arguments);
+            if (parsed is Map<String, dynamic>) {
+              return LlmResponse(toolArguments: parsed.cast<String, Object?>());
+            }
+          } on FormatException {
+            // Malformed arguments; fall through and let the caller repair.
+          }
+          return LlmResponse(text: arguments);
+        }
       }
+      final content = message['content'];
+      if (content is String) return LlmResponse(text: content);
+      if (content is List) {
+        // Content-part arrays, as used by some compatible servers.
+        final text = [
+          for (final part in content)
+            if (part is Map && part['type'] == 'text')
+              part['text'] as String? ?? '',
+        ].join();
+        return LlmResponse(text: text.isEmpty ? null : text);
+      }
+      return const LlmResponse();
+    } on TypeError catch (e) {
+      throw AdapterException(
+          response.statusCode, 'unexpected response shape: $body',
+          cause: e);
     }
-    final content = message['content'];
-    if (content is String) return LlmResponse(text: content);
-    if (content is List) {
-      // Content-part arrays, as used by some compatible servers.
-      final text = [
-        for (final part in content)
-          if (part is Map && part['type'] == 'text')
-            part['text'] as String? ?? '',
-      ].join();
-      return LlmResponse(text: text.isEmpty ? null : text);
-    }
-    return const LlmResponse();
   }
 
   /// Closes the underlying HTTP client if this adapter created it.

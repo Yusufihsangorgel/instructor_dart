@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -280,6 +281,69 @@ void main() {
         adapter.complete(_request()),
         throwsA(isA<AdapterException>()
             .having((e) => e.body, 'body', contains('not JSON'))),
+      );
+    });
+
+    // A 2xx response whose nested shape is not what a spec-compliant server
+    // sends used to escape as a raw _TypeError the caller could not catch by
+    // type. Every such mismatch must now be an AdapterException that keeps the
+    // original error on .cause. Compatible servers (Ollama, LM Studio, vLLM)
+    // are exactly where these shapes turn up.
+    final oddShapes = <String, Object>{
+      'choices is an object': {
+        'choices': {'a': 1}
+      },
+      'choices[0] is a string': {
+        'choices': ['hello']
+      },
+      'tool_calls[0] is a number': {
+        'choices': [
+          {
+            'message': {
+              'tool_calls': [5]
+            }
+          }
+        ]
+      },
+      'content part text is a number': {
+        'choices': [
+          {
+            'message': {
+              'content': [
+                {'type': 'text', 'text': 7}
+              ]
+            }
+          }
+        ]
+      },
+    };
+    oddShapes.forEach((label, body) {
+      test('a 2xx $label is an AdapterException, not a TypeError', () async {
+        final client = MockClient((_) async => http.Response(
+              jsonEncode(body),
+              200,
+              headers: {'content-type': 'application/json'},
+            ));
+        final adapter =
+            OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
+        await expectLater(
+          adapter.complete(_request()),
+          throwsA(isA<AdapterException>()
+              .having((e) => e.statusCode, 'statusCode', 200)
+              .having((e) => e.cause, 'cause', isA<TypeError>())),
+        );
+      });
+    });
+
+    test('a transport failure is an AdapterException.transport', () async {
+      final client =
+          MockClient((_) async => throw const SocketException('refused'));
+      final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
+      await expectLater(
+        adapter.complete(_request()),
+        throwsA(isA<AdapterException>()
+            .having((e) => e.statusCode, 'statusCode', isNull)
+            .having((e) => e.cause, 'cause', isA<SocketException>())),
       );
     });
   });

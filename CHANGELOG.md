@@ -1,3 +1,30 @@
+## 0.7.0
+
+Settles the adapter error contract before 1.0.0. Breaking because
+`AdapterException` grew a field and its `statusCode` is now nullable; the
+migration is small.
+
+- **Every adapter failure is now an `AdapterException`.** A 2xx response whose
+  nested shape was not what a spec-compliant server sends used to escape as a
+  raw `TypeError` the caller could not catch by type — and an OpenAI-compatible
+  server (Ollama, LM Studio, vLLM, OpenRouter) is exactly where odd shapes turn
+  up. Reproduced across four shapes (choices as an object, choices[0] as a
+  string, tool_calls[0] as a number, a content part's text as a number); all
+  four now throw `AdapterException` with the original `TypeError` on `.cause`.
+- **Transport failures are an `AdapterException` too.** A dropped connection,
+  a timeout, or a closed client used to surface as `SocketException`,
+  `TimeoutException` or `http.ClientException`. They now become
+  `AdapterException.transport`, whose `statusCode` is `null` (there was no
+  response) and whose `.cause` is the underlying error.
+- `AdapterException` gained a `cause` and a nullable `statusCode`. Both had to
+  land before 1.0.0: adding a field or a "no status code" case to a frozen
+  exception would be a breaking change. If you read `e.statusCode` as
+  non-nullable, handle the transport `null`; the previous fields are unchanged.
+- Document `Schema.normalize`'s contract: it assumes a validated value and
+  passes non-conforming input through rather than throwing (verified — it does
+  not crash on unvalidated input), and it leaves an integer beyond 2^53 as a
+  `double`, matching the README.
+
 ## 0.6.0
 
 Two pre-1.0.0 decisions, both about what the API promises rather than what it
