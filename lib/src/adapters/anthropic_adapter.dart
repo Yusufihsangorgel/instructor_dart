@@ -9,7 +9,7 @@ import '../message.dart';
 ///
 /// The schema is sent as a tool and the tool call is forced with
 /// `tool_choice`, so the model responds with structured data.
-final class AnthropicAdapter implements LlmAdapter {
+final class AnthropicAdapter extends LlmAdapter {
   AnthropicAdapter({
     required String apiKey,
     required this.model,
@@ -133,6 +133,7 @@ final class AnthropicAdapter implements LlmAdapter {
   }
 
   /// Closes the underlying HTTP client if this adapter created it.
+  @override
   void close() {
     if (_ownsClient) _client.close();
   }

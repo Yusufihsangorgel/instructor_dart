@@ -1,7 +1,7 @@
 import 'package:instructor_dart/instructor_dart.dart';
 import 'package:test/test.dart';
 
-final class _ScriptedAdapter implements LlmAdapter {
+final class _ScriptedAdapter extends LlmAdapter {
   _ScriptedAdapter(this.responses);
 
   final List<LlmResponse> responses;

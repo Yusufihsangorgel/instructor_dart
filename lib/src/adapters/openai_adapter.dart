@@ -11,7 +11,7 @@ import '../adapter.dart';
 /// `tool_choice`. Servers that ignore `tool_choice` (Ollama's
 /// OpenAI-compatible endpoint, for example) may still answer with text;
 /// `Instructor` then falls back to parsing JSON out of the text.
-final class OpenAIAdapter implements LlmAdapter {
+final class OpenAIAdapter extends LlmAdapter {
   /// [baseUrl] must point at the API root that contains
   /// `/chat/completions`, e.g. `https://api.openai.com/v1` or
   /// `http://localhost:11434/v1` for Ollama.
@@ -136,6 +136,7 @@ final class OpenAIAdapter implements LlmAdapter {
   }
 
   /// Closes the underlying HTTP client if this adapter created it.
+  @override
   void close() {
     if (_ownsClient) _client.close();
   }

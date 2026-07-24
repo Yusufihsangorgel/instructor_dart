@@ -22,7 +22,7 @@ import '../message.dart';
 /// The API key travels in the `x-goog-api-key` header rather than the `key`
 /// query parameter, so it does not end up in URLs, proxy logs, or crash
 /// reports. Both are accepted by the API.
-final class GeminiAdapter implements LlmAdapter {
+final class GeminiAdapter extends LlmAdapter {
   /// [model] is the bare model id, such as `gemini-2.0-flash`; the adapter
   /// adds the `models/` prefix and the `:generateContent` suffix.
   ///
@@ -163,6 +163,7 @@ final class GeminiAdapter implements LlmAdapter {
   }
 
   /// Closes the underlying HTTP client if this adapter created it.
+  @override
   void close() {
     if (_ownsClient) _client.close();
   }

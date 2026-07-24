@@ -36,11 +36,28 @@ final class LlmResponse {
 
 /// Bridge between [LlmRequest] and one provider's HTTP API.
 ///
-/// Implement this to add a provider. Implementations should throw
-/// [AdapterException] on non-2xx responses and otherwise return whatever the
-/// model produced without judging it; validation and retries happen upstream.
-abstract interface class LlmAdapter {
+/// Extend this to add a provider. Subclasses should throw [AdapterException]
+/// on non-2xx responses and otherwise return whatever the model produced
+/// without judging it; validation and retries happen upstream.
+///
+/// It is a `base` class rather than an interface so that it can grow. A method
+/// added here with a default body reaches every adapter without breaking it,
+/// which is what lets planned work (streaming, sampling) land in a minor
+/// release instead of a major one. Subclasses must themselves be `base`,
+/// `final` or `sealed`.
+abstract base class LlmAdapter {
+  const LlmAdapter();
+
   Future<LlmResponse> complete(LlmRequest request);
+
+  /// Releases anything the adapter owns, typically the HTTP client it created
+  /// when the caller did not supply one.
+  ///
+  /// The default does nothing, so an adapter that borrows its transport need
+  /// not override it. Safe to call more than once. [Instructor.close] forwards
+  /// here, so a caller that only holds an `Instructor` can still release the
+  /// socket.
+  void close() {}
 }
 
 /// Error from the provider's HTTP API (non-2xx response).

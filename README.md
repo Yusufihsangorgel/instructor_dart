@@ -19,6 +19,9 @@ import 'package:instructor_dart/instructor_dart.dart';
 final instructor = Instructor(
   adapter: OpenAIAdapter(apiKey: apiKey, model: 'gpt-4o-mini'),
 );
+// An adapter given no http.Client creates and owns one, so close the
+// Instructor when you are done with it; the call forwards to the adapter.
+// A long-lived Instructor can simply live as long as the program.
 
 final person = await instructor.extract(
   messages: const [Message.user('John Carmack is 55 and lives in Dallas.')],
@@ -44,10 +47,16 @@ final person = await instructor.extract(
    history: what the model said and why it was rejected.
 
 A validated object is normalized to the Dart types its schema promises. An
-`integer` field is always an `int`, even when the model wrote `25.0`; a
-`number` field is always a `double`, even when the model wrote a whole number
-like `42`. So both `json['age'] as int` and `json['price'] as double` are safe
-in `fromJson`, on the Dart VM and the web.
+`integer` field is an `int` even when the model wrote `25.0`, and a `number`
+field is a `double` even when the model wrote a whole number like `42`, so
+`json['age'] as int` and `json['price'] as double` behave the same on the Dart
+VM and the web.
+
+The one exception is an integral value beyond 2^53, where `double` can no
+longer represent every integer: those are left as a `double` rather than
+converted lossily, so `as int` would throw. If your field can hold a snowflake
+id or a nanosecond timestamp, read it as `num` and convert deliberately, or
+model it as a string.
 
 ![Diagram of the extract loop: prompt and schema go to the model as a forced tool call, the reply is parsed and validated, a mismatch is fed back for a retry, and a valid reply becomes a typed Dart object](https://raw.githubusercontent.com/Yusufihsangorgel/instructor_dart/main/doc/architecture.png)
 
@@ -105,7 +114,7 @@ may answer with plain text. Extraction still works: the JSON is parsed
 out of the text and validated the same way; a malformed answer costs one
 repair round.
 
-Anything else: implement `LlmAdapter` (one method) and pass it to
+Anything else: extend `LlmAdapter` (one method to override) and pass it to
 `Instructor`.
 
 ## Schema reference

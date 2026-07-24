@@ -1,3 +1,32 @@
+## 0.6.0
+
+Two pre-1.0.0 decisions, both about what the API promises rather than what it
+computes. Breaking for anyone who wrote their own adapter; the migration is one
+word.
+
+- **`LlmAdapter` is now an `abstract base class` with a `close()` default, and
+  `Instructor` has a `close()` that forwards to it.** Two problems met here.
+  An adapter constructed without an `http.Client` creates one and owns it, and
+  the shape the README leads with passes the adapter inline and never keeps a
+  reference — so nothing could reach that client, and a program following the
+  README sat on an idle socket after its work was done. `close()` existed only
+  on the three concrete adapters, not on the type callers hold. The second
+  problem is that fixing this by adding a member to an `abstract interface
+  class` breaks every third-party implementer, and the roadmap has streaming on
+  it, which would break them a second time. A `base` class with concrete
+  defaults can grow without breaking anyone, so that is what it is now.
+
+  To migrate, change `implements LlmAdapter` to `extends LlmAdapter` and mark
+  your class `base`, `final` or `sealed`. Override `close()` only if your
+  adapter owns something.
+
+- **Corrected the integer claim in the README.** It said `json['age'] as int`
+  is always safe for an `integer` field. It is not, above 2^53: `validate`
+  accepts such a value, but `normalize` deliberately leaves it a `double`
+  rather than converting lossily, so the cast throws. Measured: `1e16`, `1e17`
+  and `1e300` all validate and all throw on `as int`. The README now says so
+  and suggests reading such a field as `num`, or modelling it as a string.
+
 ## 0.5.0
 
 The last things to settle before this can freeze at 1.0.0, all found by

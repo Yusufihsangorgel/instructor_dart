@@ -48,6 +48,16 @@ final class Instructor {
 
   final LlmAdapter _adapter;
 
+  /// Releases the adapter's resources by forwarding to [LlmAdapter.close].
+  ///
+  /// An adapter constructed without a client of its own creates one and owns
+  /// it, and the usual way to build an `Instructor` passes the adapter inline
+  /// and never keeps a reference to it. Without this, that client could not be
+  /// reached, and the process would sit on an idle socket until it timed out.
+  /// Call it when you are done with the `Instructor`; it is safe to call more
+  /// than once.
+  void close() => _adapter.close();
+
   /// Extracts a [T] from the model.
   ///
   /// [fromJson] runs only after the response has passed schema validation,
