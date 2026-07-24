@@ -1,3 +1,11 @@
+## 0.7.1
+
+- Add `example/mock_extract.dart` and `example/README.md`. The Example tab was
+  empty, and both existing examples need a live model. The new one uses a
+  scripted `MockClient` — the model returns an out-of-range value first, so it
+  runs the schema-validation-then-retry loop, the package's core, with no
+  network. Docs and example only.
+
 ## 0.7.0
 
 Settles the adapter error contract before 1.0.0. Breaking because
