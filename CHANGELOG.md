@@ -1,3 +1,15 @@
+## 1.0.1
+
+- Fix the screenshot caption on pub.dev, which read "validated against the
+  s chema". The caption was a folded YAML scalar with a line break in the
+  middle of the word, and folding turns a line break into a space. It is now
+  a single unbroken line.
+- The Ollama e2e test now also skips when the server is running but
+  `llama3.2:3b` is not pulled. The guard only checked that the server
+  answered, and a half-prepared machine failed the suite with a 404 instead
+  of skipping.
+- Docs: tightened the README wording. Nothing under `lib/` changed.
+
 ## 1.0.0
 
 The API is stable. One freeze-cleanliness gap was found by adversarially testing

@@ -1,6 +1,7 @@
 @Tags(['e2e'])
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:instructor_dart/instructor_dart.dart';
@@ -8,7 +9,8 @@ import 'package:test/test.dart';
 
 /// End-to-end test against a local Ollama server.
 ///
-/// Skipped automatically when no server is listening. Run with:
+/// Skipped automatically when no server is listening or the model is not
+/// pulled. Run with:
 ///
 ///     ollama serve &
 ///     ollama pull llama3.2:3b
@@ -16,15 +18,27 @@ import 'package:test/test.dart';
 const _baseUrl = 'http://localhost:11434';
 const _model = 'llama3.2:3b';
 
-Future<bool> _ollamaReachable() async {
+/// The reason to skip, or null when the server is up and [_model] is pulled.
+Future<String?> _skipReason() async {
   final client = HttpClient()..connectionTimeout = const Duration(seconds: 2);
   try {
     final request = await client.getUrl(Uri.parse('$_baseUrl/api/tags'));
     final response = await request.close();
-    await response.drain<void>();
-    return response.statusCode == 200;
+    final body = await response.transform(utf8.decoder).join();
+    if (response.statusCode != 200) {
+      return 'No Ollama server at $_baseUrl.';
+    }
+    final decoded = jsonDecode(body) as Map<String, dynamic>;
+    final models = decoded['models'] as List<dynamic>? ?? const [];
+    final names = [
+      for (final model in models) (model as Map<String, dynamic>)['name'],
+    ];
+    if (!names.contains(_model)) {
+      return 'Ollama is up at $_baseUrl but $_model is not pulled.';
+    }
+    return null;
   } on Exception {
-    return false;
+    return 'No Ollama server at $_baseUrl.';
   } finally {
     client.close(force: true);
   }
@@ -32,8 +46,9 @@ Future<bool> _ollamaReachable() async {
 
 void main() {
   test('extracts typed data from a live local model', () async {
-    if (!await _ollamaReachable()) {
-      markTestSkipped('No Ollama server at $_baseUrl.');
+    final skip = await _skipReason();
+    if (skip != null) {
+      markTestSkipped(skip);
       return;
     }
 
