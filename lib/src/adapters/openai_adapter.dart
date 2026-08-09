@@ -110,11 +110,11 @@ final class OpenAIAdapter extends LlmAdapter {
       final json = decoded;
       final choices = json['choices'] as List?;
       if (choices == null || choices.isEmpty) {
-        return const LlmResponse();
+        return const LlmResponse.empty();
       }
       final message = (choices.first as Map<String, dynamic>)['message']
           as Map<String, dynamic>?;
-      if (message == null) return const LlmResponse();
+      if (message == null) return const LlmResponse.empty();
 
       final toolCalls = message['tool_calls'] as List?;
       if (toolCalls != null && toolCalls.isNotEmpty) {
@@ -124,22 +124,22 @@ final class OpenAIAdapter extends LlmAdapter {
         // Per spec `arguments` is a JSON string, but some compatible servers
         // send an already-parsed object.
         if (arguments is Map<String, dynamic>) {
-          return LlmResponse(toolArguments: arguments.cast<String, Object?>());
+          return LlmResponse.toolCall(arguments.cast<String, Object?>());
         }
         if (arguments is String) {
           try {
             final parsed = jsonDecode(arguments);
             if (parsed is Map<String, dynamic>) {
-              return LlmResponse(toolArguments: parsed.cast<String, Object?>());
+              return LlmResponse.toolCall(parsed.cast<String, Object?>());
             }
           } on FormatException {
             // Malformed arguments; fall through and let the caller repair.
           }
-          return LlmResponse(text: arguments);
+          return LlmResponse.text(arguments);
         }
       }
       final content = message['content'];
-      if (content is String) return LlmResponse(text: content);
+      if (content is String) return LlmResponse.text(content);
       if (content is List) {
         // Content-part arrays, as used by some compatible servers.
         final text = [
@@ -147,9 +147,11 @@ final class OpenAIAdapter extends LlmAdapter {
             if (part is Map && part['type'] == 'text')
               part['text'] as String? ?? '',
         ].join();
-        return LlmResponse(text: text.isEmpty ? null : text);
+        return text.isEmpty
+            ? const LlmResponse.empty()
+            : LlmResponse.text(text);
       }
-      return const LlmResponse();
+      return const LlmResponse.empty();
     } on TypeError catch (e) {
       throw AdapterException(
           response.statusCode, 'unexpected response shape: $body',

@@ -144,13 +144,15 @@ final class GeminiAdapter extends LlmAdapter {
     // shape mismatch.
     try {
       final candidates = decoded['candidates'] as List?;
-      if (candidates == null || candidates.isEmpty) return const LlmResponse();
+      if (candidates == null || candidates.isEmpty) {
+        return const LlmResponse.empty();
+      }
       final first = candidates.first;
-      if (first is! Map<String, dynamic>) return const LlmResponse();
+      if (first is! Map<String, dynamic>) return const LlmResponse.empty();
       final content = first['content'];
-      if (content is! Map<String, dynamic>) return const LlmResponse();
+      if (content is! Map<String, dynamic>) return const LlmResponse.empty();
       final parts = content['parts'] as List?;
-      if (parts == null || parts.isEmpty) return const LlmResponse();
+      if (parts == null || parts.isEmpty) return const LlmResponse.empty();
 
       // A forced call puts the arguments in a functionCall part. Take the first
       // one; text parts alongside it are commentary the caller does not need.
@@ -160,8 +162,7 @@ final class GeminiAdapter extends LlmAdapter {
         if (call is Map<String, dynamic>) {
           final arguments = call['args'];
           if (arguments is Map<String, dynamic>) {
-            return LlmResponse(
-                toolArguments: arguments.cast<String, Object?>());
+            return LlmResponse.toolCall(arguments.cast<String, Object?>());
           }
         }
       }
@@ -172,7 +173,7 @@ final class GeminiAdapter extends LlmAdapter {
           if (part is Map<String, dynamic> && part['text'] is String)
             part['text'] as String,
       ].join();
-      return LlmResponse(text: text.isEmpty ? null : text);
+      return text.isEmpty ? const LlmResponse.empty() : LlmResponse.text(text);
     } on TypeError catch (e) {
       throw AdapterException(
           response.statusCode, 'unexpected response shape: $body',

@@ -26,11 +26,41 @@ final class LlmRequest {
 
 /// A provider-agnostic completion response.
 ///
-/// Adapters must set at most one of the two fields. When the provider
-/// returned a parsed tool call, [toolArguments] carries it; when it
-/// returned plain text (or an unparseable tool call), [text] carries that
-/// and the caller falls back to extracting JSON from it.
+/// A response is one of three things and there is a constructor for each: a
+/// parsed tool call ([LlmResponse.toolCall]), text ([LlmResponse.text]) that
+/// the caller falls back to extracting JSON from, or nothing at all
+/// ([LlmResponse.empty]).
+///
+/// All three providers can put text next to a tool call in one reply. That
+/// text is commentary, so an adapter hands back the call by itself. A response
+/// built through the deprecated unnamed constructor can still carry both, and
+/// then the tool call is what gets validated and what gets quoted back to the
+/// model on a retry; the text is dropped.
 final class LlmResponse {
+  /// The provider returned a tool call whose arguments the adapter parsed.
+  const LlmResponse.toolCall(Map<String, Object?> arguments)
+      : toolArguments = arguments,
+        text = null;
+
+  /// The provider returned text: a plain answer, or a tool call whose
+  /// arguments would not parse. Either way the caller looks for JSON in it.
+  const LlmResponse.text(String value)
+      : text = value,
+        toolArguments = null;
+
+  /// The provider returned nothing the adapter could use.
+  const LlmResponse.empty()
+      : toolArguments = null,
+        text = null;
+
+  /// Use [LlmResponse.toolCall], [LlmResponse.text] or [LlmResponse.empty].
+  ///
+  /// This is the one constructor that can build a response carrying a tool
+  /// call and text at the same time. Only one of the two can be validated, so
+  /// the other is silently dropped; the named constructors cannot express that
+  /// state at all.
+  @Deprecated('Use LlmResponse.toolCall, LlmResponse.text or '
+      'LlmResponse.empty. This constructor will be removed in 2.0.0.')
   const LlmResponse({this.toolArguments, this.text});
 
   final Map<String, Object?>? toolArguments;

@@ -1,3 +1,18 @@
+## Unreleased
+
+- A response carrying both a tool call and text was resolved twice, and the two
+  answers disagreed. Validation read the tool call, while the text quoted back
+  to the model on a retry came from `text`. So the retry showed the model one
+  payload and complained about a different one, and the same mismatched pair
+  reached callers through `ExtractionException.attempts`. The choice is made
+  once now and both readers use it: the tool call wins and the text beside it
+  is dropped, which is already what all three bundled adapters do on their own.
+- `LlmResponse.toolCall`, `LlmResponse.text` and `LlmResponse.empty` name the
+  three things a response can be. The unnamed constructor is deprecated: it is
+  the only one that can build a response carrying a tool call and text at once.
+  It behaves exactly as before and will be removed in 2.0.0. An adapter outside
+  this package keeps compiling and gets a warning naming its replacement.
+
 ## 1.1.0
 
 - The README now answers, in its first screen, why to reach for this rather

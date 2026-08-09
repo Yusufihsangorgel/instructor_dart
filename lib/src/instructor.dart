@@ -117,12 +117,19 @@ final class Instructor {
         jsonSchema: jsonSchema,
       ));
 
+      // Decide once which of the two fields this response is. A response that
+      // carries both is a tool call, and the text alongside it is commentary.
+      // Both reads below use this answer, so the payload the schema judges and
+      // the payload quoted back to the model on a retry are the same one.
+      final toolArguments = response.toolArguments;
+      final text = toolArguments == null ? response.text : null;
+
       final violations = <SchemaViolation>[];
       Map<String, Object?>? candidate;
-      if (response.toolArguments != null) {
-        candidate = response.toolArguments;
-      } else if (response.text != null) {
-        candidate = _decodeJsonObject(response.text!);
+      if (toolArguments != null) {
+        candidate = toolArguments;
+      } else if (text != null) {
+        candidate = _decodeJsonObject(text);
         if (candidate == null) {
           violations.add(
               const SchemaViolation(r'$', 'response is not a JSON object'));
@@ -138,10 +145,8 @@ final class Instructor {
         return schema.normalize(candidate!) as Map<String, Object?>;
       }
 
-      final raw = response.text ??
-          (response.toolArguments == null
-              ? ''
-              : jsonEncode(response.toolArguments));
+      final raw =
+          text ?? (toolArguments == null ? '' : jsonEncode(toolArguments));
       final record = ExtractionAttempt(
         number: attempt,
         violations: violations,

@@ -125,13 +125,13 @@ final class AnthropicAdapter extends LlmAdapter {
             'raise AnthropicAdapter.maxTokens');
       }
       final content = json['content'] as List?;
-      if (content == null) return const LlmResponse();
+      if (content == null) return const LlmResponse.empty();
 
       for (final block in content) {
         if (block is Map<String, dynamic> && block['type'] == 'tool_use') {
           final input = block['input'];
           if (input is Map<String, dynamic>) {
-            return LlmResponse(toolArguments: input.cast<String, Object?>());
+            return LlmResponse.toolCall(input.cast<String, Object?>());
           }
         }
       }
@@ -140,7 +140,7 @@ final class AnthropicAdapter extends LlmAdapter {
           if (block is Map<String, dynamic> && block['type'] == 'text')
             block['text'] as String? ?? '',
       ].join();
-      return LlmResponse(text: text.isEmpty ? null : text);
+      return text.isEmpty ? const LlmResponse.empty() : LlmResponse.text(text);
     } on TypeError catch (e) {
       throw AdapterException(
           response.statusCode, 'unexpected response shape: $body',
