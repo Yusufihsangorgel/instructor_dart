@@ -4,6 +4,10 @@
 
 Typed, validated structured outputs from LLMs.
 
+![A terminal run of the extraction example: a sentence goes in, llama3.2:3b
+answers locally, and a typed `Person(name: John Carmack, age: 55, city:
+Dallas)` comes out rather than a `Map`](https://raw.githubusercontent.com/Yusufihsangorgel/instructor_dart/main/doc/local-extract.gif)
+
 Define the shape of the data you want as a plain-Dart schema, call
 `extract`, and get back a validated Dart object. When the model returns
 data that does not match the schema, the validation errors are sent back

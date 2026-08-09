@@ -3,7 +3,7 @@ description: >-
   Typed, validated structured outputs from LLMs. Build a JSON Schema in plain
   Dart, with validation and repair retries. Adapters for OpenAI, Anthropic and
   Gemini.
-version: 1.0.1
+version: 1.0.2
 repository: https://github.com/Yusufihsangorgel/instructor_dart
 issue_tracker: https://github.com/Yusufihsangorgel/instructor_dart/issues
 
@@ -15,6 +15,10 @@ topics:
   - ollama
 
 screenshots:
+  - description: >-
+      A sentence goes in, a local model answers, and a typed Person comes back
+      rather than a Map.
+    path: doc/local-extract.gif
   - description: |-
       The model answers a forced tool call; the reply is validated against the schema, and a mismatch is fed back with its errors for a retry.
     path: doc/architecture.png
