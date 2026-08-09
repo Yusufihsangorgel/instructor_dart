@@ -19,7 +19,7 @@ import 'package:instructor_dart/instructor_dart.dart';
 final instructor = Instructor(
   adapter: OpenAIAdapter(apiKey: apiKey, model: 'gpt-4o-mini'),
 );
-// An adapter given no http.Client creates and owns one, so close the
+// An adapter given no http.Client creates and owns one. Close the
 // Instructor when you are done with it; the call forwards to the adapter.
 // A long-lived Instructor can simply live as long as the program.
 
@@ -32,14 +32,14 @@ final person = await instructor.extract(
   }),
   fromJson: Person.fromJson,
 );
-// person is a Person. fromJson only runs after validation passed, so
-// every required field is present and correctly typed.
+// person is a Person. fromJson only runs after validation passed: every
+// required field is present and correctly typed.
 ```
 
 ## How it works
 
 1. Your schema is rendered to JSON Schema and sent as a forced
-   tool/function call, so the model answers with data, not prose.
+   tool/function call, which makes the model answer with data, not prose.
 2. The response is validated locally against the same schema.
 3. On failure, the violations (with JSONPath locations) are appended to
    the conversation and the model retries, up to `maxRetries` times.
@@ -93,11 +93,10 @@ final adapter = GeminiAdapter(
 Gemini differs from the other two in two ways the adapter takes care of. Its
 `contents` only accepts the `user` and `model` roles, so an assistant message
 is sent as `model`; and system text is not a message at all, it goes in the
-top-level `systemInstruction`, so system messages are collected there. The
-schema is sent as a function declaration and forced with
-`functionCallingConfig.mode: "ANY"`. The API key travels in the
-`x-goog-api-key` header rather than the `key` query parameter, so it stays out
-of URLs and logs.
+top-level `systemInstruction`, where the adapter collects it. The schema is sent
+as a function declaration and forced with `functionCallingConfig.mode: "ANY"`.
+The API key travels in the `x-goog-api-key` header rather than the `key` query
+parameter, which keeps it out of URLs and logs.
 
 Local model via Ollama:
 
@@ -130,7 +129,7 @@ Anything else: extend `LlmAdapter` (one method to override) and pass it to
 | `Schema.object({...})` | `object` | `allowAdditionalProperties` |
 
 Every builder takes a `description`; models read these when deciding what
-to put in each field, so short concrete descriptions improve results.
+to put in each field, and short concrete descriptions improve results.
 Mark object properties with `.optional()` to leave them out of the
 `required` list. Objects reject unexpected keys by default.
 

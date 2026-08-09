@@ -15,9 +15,8 @@ topics:
   - ollama
 
 screenshots:
-  - description: >-
-      The model answers a forced tool call; the reply is validated against the s
-      chema, and a mismatch is fed back with its errors for a retry.
+  - description: |-
+      The model answers a forced tool call; the reply is validated against the schema, and a mismatch is fed back with its errors for a retry.
     path: doc/architecture.png
 
 environment:
