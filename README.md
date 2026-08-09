@@ -8,6 +8,50 @@ Typed, validated structured outputs from LLMs.
 answers locally, and a typed `Person(name: John Carmack, age: 55, city:
 Dallas)` comes out rather than a `Map`](https://raw.githubusercontent.com/Yusufihsangorgel/instructor_dart/main/doc/local-extract.gif)
 
+## Why this instead of what you already have
+
+**Instead of parsing the reply yourself.** A forced tool call, `jsonDecode`, and
+an if/else over the keys gets most of the way. Typing and repair are the tedious
+parts. `IntegerSchema.normalize` (`lib/src/schema.dart:263`) collapses `25.0` to
+`25` for an `integer` field, because `jsonDecode('25.0')` yields a `double` on
+the VM and an `int` on the web, and it leaves values past 2^53 alone rather than
+converting them lossily. On a violation, `extract` appends the model's own reply
+and a repair prompt to the transcript and asks again
+(`lib/src/instructor.dart:155`).
+
+**Instead of `llm_schema`.** It validates the same kind of AI-generated JSON
+with a similar Zod-style builder and path-aware errors, and it is a real,
+adopted package, not a strawman: pure Dart, zero dependencies (`pubspec.yaml`
+lists none), published a month before this comparison was written. What it
+does not do is call a model. Its own README shows the retry as a hand-written
+`for` loop that calls `callModel` a second time and re-parses the reply
+(`README.md`, under "The repair loop"); nothing in its 1,206 lines of `lib/`
+sends a request anywhere. `Instructor.extract` (`lib/src/instructor.dart:65`)
+is that same loop, already wired to an adapter — OpenAI, Anthropic, or
+Gemini — so a caller writes a schema and one call, not the retry itself.
+
+**Also newer, worth naming honestly.** `typed_llm` reached pub.dev on
+9 August 2026, three versions the same day, 0 likes and no 30-day download
+count yet (`pub.dev/api/packages/typed_llm`). It takes a third road:
+`build_runner` plus an `@LlmSchema` annotation that generates a `.g.dart`
+(`README.md:66` and `:100`), where the schema here is a value you write at
+runtime with no build step. Its `SchemaValidationException` carries the final
+attempt's errors and a count (`lib/src/exceptions.dart:42-46`);
+`ExtractionException.attempts` (`lib/src/instructor.dart:31`) carries every
+attempt with its raw response.
+
+**Reach for it when**
+
+- You are pulling fields out of unstructured text, such as an invoice or a
+  scanned form, and the caller needs a typed object rather than a `Map`.
+- A wrong type or a missing required field should cost one more model call, not
+  a crash three layers down.
+- You do not want a code generation step in the build.
+
+Skip it if the model already returns clean JSON for your prompt and you are
+happy hand-checking two or three fields, since a schema is only worth writing
+once it is the thing doing the validating.
+
 Define the shape of the data you want as a plain-Dart schema, call
 `extract`, and get back a validated Dart object. When the model returns
 data that does not match the schema, the validation errors are sent back
