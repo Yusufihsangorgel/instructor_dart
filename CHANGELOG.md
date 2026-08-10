@@ -1,3 +1,9 @@
+## 1.2.2
+
+- The README sample now says which class in it is yours to write. It read like
+  the package supplied one, so copying it left a reader guessing at what was
+  missing.
+
 ## 1.2.1
 
 - The two examples that call a local model now check it is reachable first and

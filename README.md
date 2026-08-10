@@ -83,6 +83,8 @@ final person = await instructor.extract(
     'age': Schema.integer(min: 0, max: 130),
     'city': Schema.string().optional(),
   }),
+  // Your model class, and your factory. The schema above describes the
+  // shape; this turns the validated map into your type.
   fromJson: Person.fromJson,
 );
 // person is a Person. fromJson only runs after validation passed: every
