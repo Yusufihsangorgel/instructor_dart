@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:instructor_dart/instructor_dart.dart';
 
+import '_ollama.dart';
+
 final class Person {
   const Person({required this.name, required this.age, this.city});
 
@@ -20,6 +22,7 @@ final class Person {
 }
 
 Future<void> main() async {
+  await requireOllama();
   // Works with any OpenAI-compatible server. For a local model:
   //   OpenAIAdapter(apiKey: 'ollama', model: 'llama3.2',
   //       baseUrl: 'http://localhost:11434/v1')

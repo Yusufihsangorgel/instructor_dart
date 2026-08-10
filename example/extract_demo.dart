@@ -2,6 +2,8 @@
 // using a local model. Run with: dart run example/extract_demo.dart
 import 'package:instructor_dart/instructor_dart.dart';
 
+import '_ollama.dart';
+
 final class Person {
   const Person({required this.name, required this.age, this.city});
   factory Person.fromJson(Map<String, Object?> j) => Person(
@@ -17,11 +19,12 @@ final class Person {
 }
 
 Future<void> main() async {
+  await requireOllama();
   final instructor = Instructor(
     adapter: OpenAIAdapter(
       apiKey: 'ollama',
-      model: 'llama3.2:3b',
-      baseUrl: 'http://localhost:11434/v1',
+      model: ollamaModel,
+      baseUrl: ollamaBaseUrl,
     ),
   );
 
@@ -29,7 +32,7 @@ Future<void> main() async {
   print('');
   print('Text in:  "$text"');
   print('');
-  print('Asking llama3.2:3b locally...');
+  print('Asking $ollamaModel locally...');
   print('');
 
   final person = await instructor.extract(
