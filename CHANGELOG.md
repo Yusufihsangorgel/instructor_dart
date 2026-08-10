@@ -1,3 +1,14 @@
+## 1.2.1
+
+- The two examples that call a local model now check it is reachable first and
+  exit with the command that starts it, instead of ending in an unhandled
+  exception that reads like the package is broken. A missing server and a
+  missing model are reported separately, since the fix differs.
+- New `example/no_model_demo.dart`: a scripted adapter whose first answer
+  breaks the schema and whose second passes. No model, no network, and it
+  shows the part people assume needs provider support -- the rejection is
+  built here and quoted back on the retry.
+
 ## 1.2.0
 
 - A response carrying both a tool call and text was resolved twice, and the two

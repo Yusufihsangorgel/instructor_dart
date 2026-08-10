@@ -8,6 +8,11 @@ Typed, validated structured outputs from LLMs.
 answers locally, and a typed `Person(name: John Carmack, age: 55, city:
 Dallas)` comes out rather than a `Map`](https://raw.githubusercontent.com/Yusufihsangorgel/instructor_dart/main/doc/local-extract.gif)
 
+No model to hand? `dart run example/no_model_demo.dart` needs neither one nor a
+network. Its adapter answers from a script: the first answer puts the age
+outside the declared range, and you watch that rejection get written here and
+quoted back before the second answer arrives. That loop is the package.
+
 ## Why this instead of what you already have
 
 **Instead of parsing the reply yourself.** A forced tool call, `jsonDecode`, and
