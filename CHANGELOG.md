@@ -1,4 +1,4 @@
-## Unreleased
+## 1.2.0
 
 - A response carrying both a tool call and text was resolved twice, and the two
   answers disagreed. Validation read the tool call, while the text quoted back
