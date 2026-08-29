@@ -55,7 +55,10 @@ attempt with its raw response.
 
 Skip it if the model already returns clean JSON for your prompt and you are
 happy hand-checking two or three fields, since a schema is only worth writing
-once it is the thing doing the validating.
+once it is the thing doing the validating. Which constraints that schema
+actually checks is in [What is actually validated](#what-is-actually-validated);
+if the keyword you need is in the "not supported" list, this package will
+not catch a miss.
 
 Define the shape of the data you want as a plain-Dart schema, call
 `extract`, and get back a validated Dart object. When the model returns
@@ -187,6 +190,75 @@ Every builder takes a `description`; models read these when deciding what
 to put in each field, and short concrete descriptions improve results.
 Mark object properties with `.optional()` to leave them out of the
 `required` list. Objects reject unexpected keys by default.
+
+### What is actually validated
+
+The provider's own structured-output mode already covers the simple
+cases. This package is worth the dependency when the repair loop is
+worth it, and only for constraints `validate` actually checks. A
+keyword that looks enforced and is not is worse than one that is
+missing.
+
+**No constraint the builder lets you write is ignored at validate
+time.** `description` is the only JSON Schema keyword this package
+emits that `validate` does not check, and it is an annotation: the
+model reads it, the validator does not.
+
+`Schema.toJsonSchema()` (`lib/src/schema.dart:41`) is what every
+bundled adapter sends as the tool parameters. `Schema.validate`
+(`lib/src/schema.dart:44`) is what `extract` uses to decide whether
+to retry. The two share one definition. "Sent" below means the
+keyword appears in that JSON Schema; whether the provider also
+enforces it is the provider's problem.
+
+| Keyword | Written as | Local `validate` | Sent to the provider |
+|---|---|---|---|
+| `type` | every `Schema.*` | yes | yes |
+| `description` | `description:` on every builder | no (annotation only) | yes |
+| `minLength` | `Schema.string(minLength:)` | yes | yes |
+| `maxLength` | `Schema.string(maxLength:)` | yes | yes |
+| `pattern` | `Schema.string(pattern:)` | yes, unanchored Dart `RegExp.hasMatch` | yes |
+| `minimum` | `Schema.integer(min:)` / `Schema.number(min:)` | yes, inclusive | yes |
+| `maximum` | `Schema.integer(max:)` / `Schema.number(max:)` | yes, inclusive | yes |
+| `enum` | `Schema.enumeration([...])` | yes, strings only | yes |
+| `items` | `Schema.list(items)` | yes, one schema, not a tuple | yes |
+| `minItems` | `Schema.list(..., minItems:)` | yes | yes |
+| `maxItems` | `Schema.list(..., maxItems:)` | yes | yes |
+| `properties` | `Schema.object({...})` | yes | yes |
+| `required` | omit `.optional()` on a property | yes | yes, omitted when empty |
+| `additionalProperties` | `allowAdditionalProperties:` | yes, boolean only | yes |
+
+`minLength` / `maxLength` count Dart `String.length` (UTF-16 code
+units), not JSON Schema's Unicode code-point count. One emoji is two
+units.
+
+These JSON Schema keywords cannot be written. They are not sent, and
+`validate` does not implement them. That is not a silent ignore: the
+builder has no parameter for them.
+
+| Keyword | Notes |
+|---|---|
+| `format` | no `email`, `uri`, `date-time`, `uuid`, ... |
+| `exclusiveMinimum`, `exclusiveMaximum` | `min` / `max` are inclusive `minimum` / `maximum` |
+| `multipleOf` | |
+| `uniqueItems` | duplicate list items pass |
+| `contains`, `minContains`, `maxContains` | |
+| `prefixItems`, `additionalItems`, `unevaluatedItems` | `items` is one schema |
+| `patternProperties` | |
+| `additionalProperties` as a schema | boolean only; `true` allows extra keys of any type |
+| `minProperties`, `maxProperties` | |
+| `dependentRequired`, `dependentSchemas`, `propertyNames` | |
+| `unevaluatedProperties` | |
+| `allOf`, `anyOf`, `oneOf`, `not` | no unions, no intersection |
+| `if`, `then`, `else` | |
+| `$ref`, `$defs`, `definitions` | no reuse by reference |
+| `const` | use `Schema.enumeration` of one string |
+| `type` as an array | no `nullable`, no `["string", "null"]`; optional is omit-from-`required` |
+| `title`, `default`, `examples`, `$comment` | not emitted |
+
+Putting a constraint in `description` does not make `validate` check
+it. `Schema.string(description: 'RFC 5322 email')` accepts
+`not-an-email`.
 
 ## Scope and roadmap
 

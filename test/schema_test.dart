@@ -266,4 +266,176 @@ void main() {
       expect(() => Schema.enumeration(<String>[]), throwsArgumentError);
     });
   });
+
+  group('JSON Schema keyword coverage', () {
+    test('toJsonSchema emits exactly the keywords this package claims', () {
+      // Every factory argument that can appear on the wire, in one tree.
+      // If a keyword starts being forwarded without a matching validate
+      // check, it shows up here and has to be classified.
+      final schema = Schema.object({
+        'name': Schema.string(
+          description: 'n',
+          minLength: 1,
+          maxLength: 10,
+          pattern: r'^[a-z]+$',
+        ),
+        'age': Schema.integer(description: 'a', min: 0, max: 130),
+        'score': Schema.number(description: 's', min: 0.5, max: 9.5),
+        'ok': Schema.boolean(description: 'b'),
+        'role': Schema.enumeration(['admin', 'user'], description: 'r'),
+        'tags': Schema.list(
+          Schema.string(),
+          description: 't',
+          minItems: 1,
+          maxItems: 5,
+        ),
+        'address': Schema.object({
+          'street': Schema.string(),
+          'zip': Schema.string().optional(),
+        }, description: 'addr', allowAdditionalProperties: true),
+        'note': Schema.string().optional(),
+      }, description: 'person');
+
+      expect(_jsonSchemaKeywords(schema.toJsonSchema()), {
+        'additionalProperties',
+        'description',
+        'enum',
+        'items',
+        'maxItems',
+        'maxLength',
+        'maximum',
+        'minItems',
+        'minLength',
+        'minimum',
+        'pattern',
+        'properties',
+        'required',
+        'type',
+      });
+    });
+
+    test('every expressed constraint keyword actually rejects', () {
+      expect(Schema.string().validate(1), isNotEmpty);
+      expect(Schema.string(minLength: 2).validate('a'), isNotEmpty);
+      expect(Schema.string(maxLength: 1).validate('ab'), isNotEmpty);
+      expect(Schema.string(pattern: r'^a$').validate('b'), isNotEmpty);
+      expect(Schema.integer().validate('1'), isNotEmpty);
+      expect(Schema.integer(min: 0).validate(-1), isNotEmpty);
+      expect(Schema.integer(max: 1).validate(2), isNotEmpty);
+      expect(Schema.number().validate('1'), isNotEmpty);
+      expect(Schema.number(min: 0.5).validate(0.4), isNotEmpty);
+      expect(Schema.number(max: 1.5).validate(1.6), isNotEmpty);
+      expect(Schema.boolean().validate(1), isNotEmpty);
+      expect(Schema.enumeration(['a']).validate('b'), isNotEmpty);
+      expect(Schema.list(Schema.string()).validate('x'), isNotEmpty);
+      expect(
+        Schema.list(Schema.string(), minItems: 1).validate(<String>[]),
+        isNotEmpty,
+      );
+      expect(
+        Schema.list(Schema.string(), maxItems: 1).validate(['a', 'b']),
+        isNotEmpty,
+      );
+      expect(Schema.list(Schema.integer()).validate(['x']), isNotEmpty);
+      expect(Schema.object({'x': Schema.string()}).validate({}), isNotEmpty);
+      expect(
+        Schema.object({'x': Schema.string()}).validate({'x': 'a', 'y': 1}),
+        isNotEmpty,
+      );
+    });
+
+    test('description is forwarded and is not a constraint', () {
+      // The only emitted keyword validate does not check. A description
+      // that reads like a format or a pattern is still only text for the
+      // model; putting the constraint there does not enforce it.
+      final s = Schema.string(description: 'RFC 5322 email address');
+      expect(s.toJsonSchema()['description'], 'RFC 5322 email address');
+      expect(s.validate('not-an-email'), isEmpty);
+    });
+
+    test('pattern is unanchored, matching JSON Schema', () {
+      // JSON Schema pattern uses an unanchored search; Dart's hasMatch
+      // does the same. Callers who want a full-string match write ^ and $.
+      final s = Schema.string(pattern: r'\d{4}');
+      expect(s.validate('1234'), isEmpty);
+      expect(s.validate('x1234y'), isEmpty);
+      expect(s.validate('12a4'), isNotEmpty);
+    });
+
+    test(
+        'minimum and maximum are inclusive; exclusive bounds cannot be written',
+        () {
+      final n = Schema.number(min: 0, max: 10);
+      expect(n.toJsonSchema().containsKey('exclusiveMinimum'), isFalse);
+      expect(n.toJsonSchema().containsKey('exclusiveMaximum'), isFalse);
+      expect(n.validate(0), isEmpty);
+      expect(n.validate(10), isEmpty);
+      expect(n.validate(-0.1), isNotEmpty);
+      expect(n.validate(10.1), isNotEmpty);
+
+      final i = Schema.integer(min: 0, max: 2);
+      expect(i.validate(0), isEmpty);
+      expect(i.validate(2), isEmpty);
+    });
+
+    test('uniqueItems is not expressed; duplicate list items pass', () {
+      final s = Schema.list(Schema.string());
+      expect(s.toJsonSchema().containsKey('uniqueItems'), isFalse);
+      expect(s.validate(['a', 'a']), isEmpty);
+    });
+
+    test('format is not expressed, and a description is not a format check',
+        () {
+      final s = Schema.string(description: 'email');
+      expect(s.toJsonSchema().containsKey('format'), isFalse);
+      expect(s.validate('not-an-email'), isEmpty);
+    });
+
+    test('minLength and maxLength count Dart String.length, not code points',
+        () {
+      // JSON Schema counts Unicode characters; Dart counts UTF-16 units.
+      // U+1F44D is one code point and two units, so maxLength: 1 rejects it.
+      const thumbsUp = '\u{1F44D}';
+      expect(thumbsUp.length, 2);
+      final one = Schema.string(minLength: 1, maxLength: 1);
+      expect(one.validate('a'), isEmpty);
+      expect(one.validate(thumbsUp), isNotEmpty);
+      expect(Schema.string(minLength: 2).validate(thumbsUp), isEmpty);
+    });
+
+    test(
+        'additionalProperties as a schema cannot be written; true allows any extra',
+        () {
+      final open = Schema.object({
+        'name': Schema.string(),
+      }, allowAdditionalProperties: true);
+      expect(open.toJsonSchema()['additionalProperties'], isTrue);
+      expect(
+        open.validate({'name': 'Ada', 'extra': 1, 'also': <Object?>[]}),
+        isEmpty,
+      );
+    });
+  });
+}
+
+/// JSON Schema keyword names in a [Schema.toJsonSchema] tree.
+///
+/// Property names under `properties` are not keywords; only the nested
+/// schemas' own keys are. `enum` / `required` values are strings, not schemas.
+Set<String> _jsonSchemaKeywords(Object? node) {
+  if (node is! Map) return {};
+  final keys = <String>{};
+  for (final entry in node.entries) {
+    final key = entry.key as String;
+    keys.add(key);
+    if (key == 'properties' && entry.value is Map) {
+      for (final property in (entry.value as Map).values) {
+        keys.addAll(_jsonSchemaKeywords(property));
+      }
+    } else if (key == 'items' ||
+        (key == 'additionalProperties' && entry.value is Map)) {
+      keys.addAll(_jsonSchemaKeywords(entry.value));
+    }
+  }
+  return keys;
 }

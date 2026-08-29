@@ -1,3 +1,16 @@
+## 1.3.0
+
+- The README now says, keyword by keyword, which JSON Schema constraints
+  this package actually validates, which it only forwards to the provider,
+  and which it cannot express. An agent or a developer picking this over
+  the provider's own structured-output mode needs that inventory, because
+  a keyword that looks enforced and is not is worse than one that is
+  missing. There is no such keyword: every constraint the builder accepts
+  is checked in `validate`. Tests lock the surprising cases so they cannot
+  change silently — `description` is an annotation, `pattern` is unanchored,
+  `min` / `max` are inclusive, and `format` / `uniqueItems` /
+  `exclusiveMinimum` cannot be written.
+
 ## 1.2.2
 
 - The README sample now says which class in it is yours to write. It read like
