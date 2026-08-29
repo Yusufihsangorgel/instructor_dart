@@ -8,10 +8,10 @@ final class Person {
   const Person({required this.name, required this.age, this.city});
 
   factory Person.fromJson(Map<String, Object?> json) => Person(
-    name: json['name'] as String,
-    age: json['age'] as int,
-    city: json['city'] as String?,
-  );
+        name: json['name'] as String,
+        age: json['age'] as int,
+        city: json['city'] as String?,
+      );
 
   final String name;
   final int age;

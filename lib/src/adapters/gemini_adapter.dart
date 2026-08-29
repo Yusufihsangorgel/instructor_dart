@@ -35,12 +35,12 @@ final class GeminiAdapter extends LlmAdapter {
     http.Client? client,
     this.temperature,
     this.timeout = const Duration(seconds: 60),
-  }) : _apiKey = apiKey,
-       _baseUrl = baseUrl.endsWith('/')
-           ? baseUrl.substring(0, baseUrl.length - 1)
-           : baseUrl,
-       _client = client ?? http.Client(),
-       _ownsClient = client == null;
+  })  : _apiKey = apiKey,
+        _baseUrl = baseUrl.endsWith('/')
+            ? baseUrl.substring(0, baseUrl.length - 1)
+            : baseUrl,
+        _client = client ?? http.Client(),
+        _ownsClient = client == null;
 
   final String model;
   final double? temperature;

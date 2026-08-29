@@ -13,10 +13,10 @@ import 'package:instructor_dart/instructor_dart.dart';
 final class Person {
   const Person({required this.name, required this.age, this.city});
   factory Person.fromJson(Map<String, Object?> j) => Person(
-    name: j['name']! as String,
-    age: j['age']! as int,
-    city: j['city'] as String?,
-  );
+        name: j['name']! as String,
+        age: j['age']! as int,
+        city: j['city'] as String?,
+      );
   final String name;
   final int age;
   final String? city;
@@ -48,9 +48,8 @@ final class ScriptedAdapter extends LlmAdapter {
       // it: this is the part people assume a library cannot do without the
       // provider's help.
       final last = request.messages.last.content;
-      final tail = last.length > 120
-          ? '...${last.substring(last.length - 120)}'
-          : last;
+      final tail =
+          last.length > 120 ? '...${last.substring(last.length - 120)}' : last;
       print('       the model is told: $tail');
     }
     print('       it answers: $reply');

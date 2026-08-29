@@ -7,10 +7,10 @@ import '_ollama.dart';
 final class Person {
   const Person({required this.name, required this.age, this.city});
   factory Person.fromJson(Map<String, Object?> j) => Person(
-    name: j['name'] as String,
-    age: j['age'] as int,
-    city: j['city'] as String?,
-  );
+        name: j['name'] as String,
+        age: j['age'] as int,
+        city: j['city'] as String?,
+      );
   final String name;
   final int age;
   final String? city;

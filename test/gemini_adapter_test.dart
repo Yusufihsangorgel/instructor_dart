@@ -6,34 +6,34 @@ import 'package:instructor_dart/instructor_dart.dart';
 import 'package:test/test.dart';
 
 LlmRequest _request() => LlmRequest(
-  messages: const [
-    Message.system('Be precise.'),
-    Message.user('John is 25.'),
-    Message.assistant('Understood.'),
-  ],
-  toolName: 'extract',
-  toolDescription: 'Record the extracted data.',
-  jsonSchema: Schema.object({'name': Schema.string()}).toJsonSchema(),
-);
+      messages: const [
+        Message.system('Be precise.'),
+        Message.user('John is 25.'),
+        Message.assistant('Understood.'),
+      ],
+      toolName: 'extract',
+      toolDescription: 'Record the extracted data.',
+      jsonSchema: Schema.object({'name': Schema.string()}).toJsonSchema(),
+    );
 
 http.Response _functionCallResponse(Map<String, Object?> args) => http.Response(
-  jsonEncode({
-    'candidates': [
-      {
-        'content': {
-          'parts': [
-            {
-              'functionCall': {'name': 'extract', 'args': args},
+      jsonEncode({
+        'candidates': [
+          {
+            'content': {
+              'parts': [
+                {
+                  'functionCall': {'name': 'extract', 'args': args},
+                },
+              ],
+              'role': 'model',
             },
-          ],
-          'role': 'model',
-        },
-      },
-    ],
-  }),
-  200,
-  headers: {'content-type': 'application/json'},
-);
+          },
+        ],
+      }),
+      200,
+      headers: {'content-type': 'application/json'},
+    );
 
 void main() {
   group('GeminiAdapter', () {
@@ -87,9 +87,8 @@ void main() {
         ]);
 
         // The schema rides as a function declaration, forced with mode ANY.
-        final declaration =
-            ((body['tools'] as List).first as Map)['functionDeclarations']
-                as List;
+        final declaration = ((body['tools'] as List).first
+            as Map)['functionDeclarations'] as List;
         expect((declaration.first as Map)['name'], 'extract');
         expect(
           (declaration.first as Map)['description'],

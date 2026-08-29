@@ -116,9 +116,8 @@ void main() {
   test('rejects negative maxRetries', () {
     final adapter = _ScriptedAdapter([]);
     expect(
-      () =>
-          Instructor(adapter: adapter)
-              .extractRaw(messages: messages, schema: schema, maxRetries: -1),
+      () => Instructor(adapter: adapter)
+          .extractRaw(messages: messages, schema: schema, maxRetries: -1),
       throwsArgumentError,
     );
   });
@@ -201,8 +200,10 @@ void main() {
     );
   });
 
-  group('the response the validator judged is the one that gets echoed back', () {
-    test('resolves a both-set response the same way for validation and for '
+  group('the response the validator judged is the one that gets echoed back',
+      () {
+    test(
+        'resolves a both-set response the same way for validation and for '
         'the repair echo', () async {
       // The package's own three adapters cannot produce this, but LlmAdapter is
       // meant to be extended and all three providers can put text and a tool
@@ -321,18 +322,15 @@ void main() {
           isA<ExtractionException>().having(
             (e) => e.attempts.single,
             'the one attempt',
-            isA<ExtractionAttempt>()
-                .having(
-                  (a) => a.violations.map((v) => v.path).toList(),
-                  'paths',
-                  [r'$.name', r'$.age'],
-                )
-                .having(
-                  (a) => a.violations.map((v) => v.message).toSet(),
-                  'messages',
-                  {'required property is missing'},
-                )
-                .having((a) => a.rawResponse, 'rawResponse', '{}'),
+            isA<ExtractionAttempt>().having(
+              (a) => a.violations.map((v) => v.path).toList(),
+              'paths',
+              [r'$.name', r'$.age'],
+            ).having(
+              (a) => a.violations.map((v) => v.message).toSet(),
+              'messages',
+              {'required property is missing'},
+            ).having((a) => a.rawResponse, 'rawResponse', '{}'),
           ),
         ),
       );

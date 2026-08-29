@@ -22,12 +22,12 @@ final class OpenAIAdapter extends LlmAdapter {
     http.Client? client,
     this.temperature,
     this.timeout = const Duration(seconds: 60),
-  }) : _apiKey = apiKey,
-       _baseUrl = baseUrl.endsWith('/')
-           ? baseUrl.substring(0, baseUrl.length - 1)
-           : baseUrl,
-       _client = client ?? http.Client(),
-       _ownsClient = client == null;
+  })  : _apiKey = apiKey,
+        _baseUrl = baseUrl.endsWith('/')
+            ? baseUrl.substring(0, baseUrl.length - 1)
+            : baseUrl,
+        _client = client ?? http.Client(),
+        _ownsClient = client == null;
 
   final String model;
   final double? temperature;
@@ -118,16 +118,14 @@ final class OpenAIAdapter extends LlmAdapter {
       if (choices == null || choices.isEmpty) {
         return const LlmResponse.empty();
       }
-      final message =
-          (choices.first as Map<String, dynamic>)['message']
-              as Map<String, dynamic>?;
+      final message = (choices.first as Map<String, dynamic>)['message']
+          as Map<String, dynamic>?;
       if (message == null) return const LlmResponse.empty();
 
       final toolCalls = message['tool_calls'] as List?;
       if (toolCalls != null && toolCalls.isNotEmpty) {
-        final function =
-            (toolCalls.first as Map<String, dynamic>)['function']
-                as Map<String, dynamic>?;
+        final function = (toolCalls.first as Map<String, dynamic>)['function']
+            as Map<String, dynamic>?;
         final arguments = function?['arguments'];
         // Per spec `arguments` is a JSON string, but some compatible servers
         // send an already-parsed object.

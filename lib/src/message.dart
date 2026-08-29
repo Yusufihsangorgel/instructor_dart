@@ -13,7 +13,7 @@ final class Message {
 
   /// A message with [MessageRole.assistant].
   const Message.assistant(String content)
-    : this(MessageRole.assistant, content);
+      : this(MessageRole.assistant, content);
 
   final MessageRole role;
   final String content;

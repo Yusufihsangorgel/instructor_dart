@@ -73,9 +73,9 @@ sealed class Schema {
   Object? normalize(Object? value) => value;
 
   Map<String, Object?> _base(String type) => {
-    'type': type,
-    if (description != null) 'description': description,
-  };
+        'type': type,
+        if (description != null) 'description': description,
+      };
 
   /// An object with named [properties]. Properties are required unless
   /// marked with `optional()`.
@@ -87,11 +87,12 @@ sealed class Schema {
     Map<String, Schema> properties, {
     String? description,
     bool allowAdditionalProperties = false,
-  }) => ObjectSchema._(
-    Map<String, Schema>.unmodifiable(properties),
-    description: description,
-    allowAdditionalProperties: allowAdditionalProperties,
-  );
+  }) =>
+      ObjectSchema._(
+        Map<String, Schema>.unmodifiable(properties),
+        description: description,
+        allowAdditionalProperties: allowAdditionalProperties,
+      );
 
   /// A string, optionally constrained by length or a regular expression.
   ///
@@ -141,24 +142,25 @@ sealed class Schema {
     String? description,
     int? minItems,
     int? maxItems,
-  }) => ListSchema._(
-    items,
-    description: description,
-    minItems: minItems,
-    maxItems: maxItems,
-  );
+  }) =>
+      ListSchema._(
+        items,
+        description: description,
+        minItems: minItems,
+        maxItems: maxItems,
+      );
 }
 
 String _typeName(Object? value) => switch (value) {
-  null => 'null',
-  String() => 'a string',
-  bool() => 'a boolean',
-  int() => 'an integer',
-  double() => 'a number',
-  List() => 'a list',
-  Map() => 'an object',
-  _ => value.runtimeType.toString(),
-};
+      null => 'null',
+      String() => 'a string',
+      bool() => 'a boolean',
+      int() => 'an integer',
+      double() => 'a number',
+      List() => 'a list',
+      Map() => 'an object',
+      _ => value.runtimeType.toString(),
+    };
 
 /// Schema for string values. See [Schema.string].
 final class StringSchema extends Schema {
@@ -178,20 +180,20 @@ final class StringSchema extends Schema {
 
   /// A copy of this schema that may be omitted as an object property.
   StringSchema optional() => StringSchema._(
-    description: description,
-    isOptional: true,
-    minLength: minLength,
-    maxLength: maxLength,
-    pattern: pattern,
-  );
+        description: description,
+        isOptional: true,
+        minLength: minLength,
+        maxLength: maxLength,
+        pattern: pattern,
+      );
 
   @override
   Map<String, Object?> toJsonSchema() => {
-    ..._base('string'),
-    if (minLength != null) 'minLength': minLength,
-    if (maxLength != null) 'maxLength': maxLength,
-    if (pattern != null) 'pattern': pattern,
-  };
+        ..._base('string'),
+        if (minLength != null) 'minLength': minLength,
+        if (maxLength != null) 'maxLength': maxLength,
+        if (pattern != null) 'pattern': pattern,
+      };
 
   @override
   void _collectViolations(
@@ -246,18 +248,18 @@ final class IntegerSchema extends Schema {
 
   /// A copy of this schema that may be omitted as an object property.
   IntegerSchema optional() => IntegerSchema._(
-    description: description,
-    isOptional: true,
-    min: min,
-    max: max,
-  );
+        description: description,
+        isOptional: true,
+        min: min,
+        max: max,
+      );
 
   @override
   Map<String, Object?> toJsonSchema() => {
-    ..._base('integer'),
-    if (min != null) 'minimum': min,
-    if (max != null) 'maximum': max,
-  };
+        ..._base('integer'),
+        if (min != null) 'minimum': min,
+        if (max != null) 'maximum': max,
+      };
 
   @override
   void _collectViolations(
@@ -265,8 +267,7 @@ final class IntegerSchema extends Schema {
     String path,
     List<SchemaViolation> out,
   ) {
-    final isIntegral =
-        value is int ||
+    final isIntegral = value is int ||
         (value is double &&
             value.isFinite &&
             value.truncateToDouble() == value);
@@ -316,18 +317,18 @@ final class NumberSchema extends Schema {
 
   /// A copy of this schema that may be omitted as an object property.
   NumberSchema optional() => NumberSchema._(
-    description: description,
-    isOptional: true,
-    min: min,
-    max: max,
-  );
+        description: description,
+        isOptional: true,
+        min: min,
+        max: max,
+      );
 
   @override
   Map<String, Object?> toJsonSchema() => {
-    ..._base('number'),
-    if (min != null) 'minimum': min,
-    if (max != null) 'maximum': max,
-  };
+        ..._base('number'),
+        if (min != null) 'minimum': min,
+        if (max != null) 'maximum': max,
+      };
 
   @override
   void _collectViolations(
@@ -425,20 +426,20 @@ final class ListSchema extends Schema {
 
   /// A copy of this schema that may be omitted as an object property.
   ListSchema optional() => ListSchema._(
-    items,
-    description: description,
-    isOptional: true,
-    minItems: minItems,
-    maxItems: maxItems,
-  );
+        items,
+        description: description,
+        isOptional: true,
+        minItems: minItems,
+        maxItems: maxItems,
+      );
 
   @override
   Map<String, Object?> toJsonSchema() => {
-    ..._base('array'),
-    'items': items.toJsonSchema(),
-    if (minItems != null) 'minItems': minItems,
-    if (maxItems != null) 'maxItems': maxItems,
-  };
+        ..._base('array'),
+        'items': items.toJsonSchema(),
+        if (minItems != null) 'minItems': minItems,
+        if (maxItems != null) 'maxItems': maxItems,
+      };
 
   @override
   void _collectViolations(
@@ -498,11 +499,11 @@ final class ObjectSchema extends Schema {
 
   /// A copy of this schema that may be omitted as an object property.
   ObjectSchema optional() => ObjectSchema._(
-    properties,
-    description: description,
-    isOptional: true,
-    allowAdditionalProperties: allowAdditionalProperties,
-  );
+        properties,
+        description: description,
+        isOptional: true,
+        allowAdditionalProperties: allowAdditionalProperties,
+      );
 
   @override
   Map<String, Object?> toJsonSchema() {

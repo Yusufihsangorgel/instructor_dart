@@ -7,11 +7,14 @@ import 'package:instructor_dart/instructor_dart.dart';
 import 'package:test/test.dart';
 
 LlmRequest _request() => LlmRequest(
-  messages: const [Message.system('Be precise.'), Message.user('John is 25.')],
-  toolName: 'extract',
-  toolDescription: 'Record the extracted data.',
-  jsonSchema: Schema.object({'name': Schema.string()}).toJsonSchema(),
-);
+      messages: const [
+        Message.system('Be precise.'),
+        Message.user('John is 25.')
+      ],
+      toolName: 'extract',
+      toolDescription: 'Record the extracted data.',
+      jsonSchema: Schema.object({'name': Schema.string()}).toJsonSchema(),
+    );
 
 void main() {
   group('OpenAIAdapter', () {
@@ -66,9 +69,8 @@ void main() {
         {'role': 'system', 'content': 'Be precise.'},
         {'role': 'user', 'content': 'John is 25.'},
       ]);
-      final tool =
-          ((body['tools'] as List).single as Map<String, dynamic>)['function']
-              as Map<String, dynamic>;
+      final tool = ((body['tools'] as List).single
+          as Map<String, dynamic>)['function'] as Map<String, dynamic>;
       expect(tool['parameters'], containsPair('type', 'object'));
     });
 

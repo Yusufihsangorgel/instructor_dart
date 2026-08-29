@@ -113,8 +113,7 @@ final class Instructor {
         LlmRequest(
           messages: List.unmodifiable(transcript),
           toolName: toolName,
-          toolDescription:
-              toolDescription ??
+          toolDescription: toolDescription ??
               'Record the extracted data as structured fields.',
           jsonSchema: jsonSchema,
         ),
