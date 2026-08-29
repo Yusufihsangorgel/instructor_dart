@@ -416,6 +416,56 @@ void main() {
       );
     });
   });
+
+  group('valid JSON that is still the wrong object', () {
+    // The README table of cases native JSON mode can still return. If a
+    // message or a normalize result here changes, the table is lying.
+
+    test('rejects an out-of-range integer that is still a JSON integer', () {
+      final s = Schema.integer(min: 0, max: 130);
+      expect(s.validate(999).single.message, 'expected <= 130, got 999');
+      expect(s.validate(999.0).single.message, 'expected <= 130, got 999.0');
+    });
+
+    test('rejects an enum value outside the set, including a case fold', () {
+      final s = Schema.enumeration(['admin', 'user']);
+      expect(
+        s.validate('root').single.message,
+        'expected one of admin, user, got root',
+      );
+      expect(
+        s.validate('Admin').single.message,
+        'expected one of admin, user, got Admin',
+      );
+
+      // Anthropic documents that structured outputs may change enum
+      // capitalization and still complete normally. Exact match here is
+      // what makes that a violation this package will quote back.
+      final topics = Schema.enumeration([
+        'Conversation Topic 1',
+        'Conversation Topic 2',
+        'Conversation topic 3',
+      ]);
+      expect(
+        topics.validate('Conversation Topic 3').single.message,
+        'expected one of Conversation Topic 1, Conversation Topic 2, '
+        'Conversation topic 3, got Conversation Topic 3',
+      );
+      expect(topics.validate('Conversation topic 3'), isEmpty);
+    });
+
+    test('collapses a VM-decoded 25.0 to int, leaves values past 2^53', () {
+      final s = Schema.integer();
+      expect(s.validate(25.0), isEmpty);
+      expect(s.normalize(25.0), same(25));
+      expect(s.normalize(25.0), isA<int>());
+      expect(s.normalize(25), same(25));
+
+      const pastSafe = 9007199254740994.0; // 2^53 + 2
+      expect(s.validate(pastSafe), isEmpty);
+      expect(s.normalize(pastSafe), isA<double>());
+    });
+  });
 }
 
 /// JSON Schema keyword names in a [Schema.toJsonSchema] tree.
