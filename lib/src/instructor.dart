@@ -109,13 +109,16 @@ final class Instructor {
     final totalAttempts = maxRetries + 1;
 
     for (var attempt = 1; attempt <= totalAttempts; attempt++) {
-      final response = await _adapter.complete(LlmRequest(
-        messages: List.unmodifiable(transcript),
-        toolName: toolName,
-        toolDescription: toolDescription ??
-            'Record the extracted data as structured fields.',
-        jsonSchema: jsonSchema,
-      ));
+      final response = await _adapter.complete(
+        LlmRequest(
+          messages: List.unmodifiable(transcript),
+          toolName: toolName,
+          toolDescription:
+              toolDescription ??
+              'Record the extracted data as structured fields.',
+          jsonSchema: jsonSchema,
+        ),
+      );
 
       // Decide once which of the two fields this response is. A response that
       // carries both is a tool call, and the text alongside it is commentary.
@@ -132,11 +135,16 @@ final class Instructor {
         candidate = _decodeJsonObject(text);
         if (candidate == null) {
           violations.add(
-              const SchemaViolation(r'$', 'response is not a JSON object'));
+            const SchemaViolation(r'$', 'response is not a JSON object'),
+          );
         }
       } else {
-        violations.add(const SchemaViolation(
-            r'$', 'model returned neither a tool call nor text'));
+        violations.add(
+          const SchemaViolation(
+            r'$',
+            'model returned neither a tool call nor text',
+          ),
+        );
       }
       if (candidate != null) {
         violations.addAll(schema.validate(candidate));
@@ -164,16 +172,19 @@ final class Instructor {
   }
 
   static String _repairPrompt(
-      List<SchemaViolation> violations, String toolName) {
+    List<SchemaViolation> violations,
+    String toolName,
+  ) {
     final buffer = StringBuffer(
-        'The previous response did not match the required schema.\n')
-      ..writeln('Problems:');
+      'The previous response did not match the required schema.\n',
+    )..writeln('Problems:');
     for (final violation in violations) {
       buffer.writeln('- $violation');
     }
     buffer.write(
-        'Call the $toolName tool again with data that fixes every problem. '
-        'Do not repeat the same mistakes.');
+      'Call the $toolName tool again with data that fixes every problem. '
+      'Do not repeat the same mistakes.',
+    );
     return buffer.toString();
   }
 
@@ -195,8 +206,10 @@ final class Instructor {
 
   static Iterable<String> _jsonCandidates(String text) sync* {
     yield text;
-    final fence =
-        RegExp(r'```(?:json)?\s*(.*?)```', dotAll: true).firstMatch(text);
+    final fence = RegExp(
+      r'```(?:json)?\s*(.*?)```',
+      dotAll: true,
+    ).firstMatch(text);
     if (fence != null) yield fence.group(1)!;
     final start = text.indexOf('{');
     final end = text.lastIndexOf('}');

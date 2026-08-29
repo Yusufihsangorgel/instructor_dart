@@ -19,13 +19,13 @@ final class AnthropicAdapter extends LlmAdapter {
     http.Client? client,
     this.temperature,
     this.timeout = const Duration(seconds: 60),
-  })  : _apiKey = apiKey,
-        _baseUrl = baseUrl.endsWith('/')
-            ? baseUrl.substring(0, baseUrl.length - 1)
-            : baseUrl,
-        _apiVersion = apiVersion,
-        _client = client ?? http.Client(),
-        _ownsClient = client == null;
+  }) : _apiKey = apiKey,
+       _baseUrl = baseUrl.endsWith('/')
+           ? baseUrl.substring(0, baseUrl.length - 1)
+           : baseUrl,
+       _apiVersion = apiVersion,
+       _client = client ?? http.Client(),
+       _ownsClient = client == null;
 
   final String model;
 
@@ -62,7 +62,8 @@ final class AnthropicAdapter extends LlmAdapter {
     ];
     if (chat.isEmpty) {
       throw ArgumentError(
-          'request.messages must contain at least one non-system message');
+        'request.messages must contain at least one non-system message',
+      );
     }
 
     final http.Response response;
@@ -95,8 +96,10 @@ final class AnthropicAdapter extends LlmAdapter {
     } on AdapterException {
       rethrow;
     } catch (e) {
-      throw AdapterException.transport('request to the Anthropic API failed',
-          cause: e);
+      throw AdapterException.transport(
+        'request to the Anthropic API failed',
+        cause: e,
+      );
     }
     final body = utf8.decode(response.bodyBytes);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -108,11 +111,15 @@ final class AnthropicAdapter extends LlmAdapter {
       decoded = jsonDecode(body);
     } on FormatException {
       throw AdapterException(
-          response.statusCode, 'response body is not JSON: $body');
+        response.statusCode,
+        'response body is not JSON: $body',
+      );
     }
     if (decoded is! Map<String, dynamic>) {
       throw AdapterException(
-          response.statusCode, 'unexpected response shape: $body');
+        response.statusCode,
+        'unexpected response shape: $body',
+      );
     }
     // Any cast mismatch on a 2xx body becomes an AdapterException rather than a
     // raw TypeError the caller cannot catch by type.
@@ -120,9 +127,10 @@ final class AnthropicAdapter extends LlmAdapter {
       final json = decoded;
       if (json['stop_reason'] == 'max_tokens') {
         throw AdapterException(
-            response.statusCode,
-            'response truncated at max_tokens=$maxTokens; '
-            'raise AnthropicAdapter.maxTokens');
+          response.statusCode,
+          'response truncated at max_tokens=$maxTokens; '
+          'raise AnthropicAdapter.maxTokens',
+        );
       }
       final content = json['content'] as List?;
       if (content == null) return const LlmResponse.empty();
@@ -143,8 +151,10 @@ final class AnthropicAdapter extends LlmAdapter {
       return text.isEmpty ? const LlmResponse.empty() : LlmResponse.text(text);
     } on TypeError catch (e) {
       throw AdapterException(
-          response.statusCode, 'unexpected response shape: $body',
-          cause: e);
+        response.statusCode,
+        'unexpected response shape: $body',
+        cause: e,
+      );
     }
   }
 

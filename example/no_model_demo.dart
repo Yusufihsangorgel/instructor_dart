@@ -13,10 +13,10 @@ import 'package:instructor_dart/instructor_dart.dart';
 final class Person {
   const Person({required this.name, required this.age, this.city});
   factory Person.fromJson(Map<String, Object?> j) => Person(
-        name: j['name']! as String,
-        age: j['age']! as int,
-        city: j['city'] as String?,
-      );
+    name: j['name']! as String,
+    age: j['age']! as int,
+    city: j['city'] as String?,
+  );
   final String name;
   final int age;
   final String? city;
@@ -39,15 +39,18 @@ final class ScriptedAdapter extends LlmAdapter {
   Future<LlmResponse> complete(LlmRequest request) async {
     final reply = _replies[_calls.clamp(0, _replies.length - 1)];
     _calls++;
-    print('  call $_calls -> tool "${request.toolName}", '
-        '${request.messages.length} message(s)');
+    print(
+      '  call $_calls -> tool "${request.toolName}", '
+      '${request.messages.length} message(s)',
+    );
     if (_calls > 1) {
       // The retry carries why the last answer was rejected. Print the tail of
       // it: this is the part people assume a library cannot do without the
       // provider's help.
       final last = request.messages.last.content;
-      final tail =
-          last.length > 120 ? '...${last.substring(last.length - 120)}' : last;
+      final tail = last.length > 120
+          ? '...${last.substring(last.length - 120)}'
+          : last;
       print('       the model is told: $tail');
     }
     print('       it answers: $reply');
@@ -80,8 +83,10 @@ Future<void> main() async {
 
   print('');
   print('Typed out: $person');
-  print('           age is an int, not a string that looks like one: '
-      '${person.age.runtimeType}');
+  print(
+    '           age is an int, not a string that looks like one: '
+    '${person.age.runtimeType}',
+  );
   print('');
   print('The first answer never reached your code. It failed the schema, the');
   print('failure was quoted back, and the second answer is what you got.');

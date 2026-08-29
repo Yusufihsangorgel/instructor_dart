@@ -44,8 +44,11 @@ void main() {
 
     test('renders string constraints and number bounds', () {
       expect(
-        Schema.string(minLength: 2, maxLength: 5, pattern: r'^[a-z]+$')
-            .toJsonSchema(),
+        Schema.string(
+          minLength: 2,
+          maxLength: 5,
+          pattern: r'^[a-z]+$',
+        ).toJsonSchema(),
         {
           'type': 'string',
           'minLength': 2,
@@ -53,8 +56,10 @@ void main() {
           'pattern': r'^[a-z]+$',
         },
       );
-      expect(Schema.number(min: 0.5).toJsonSchema(),
-          {'type': 'number', 'minimum': 0.5});
+      expect(Schema.number(min: 0.5).toJsonSchema(), {
+        'type': 'number',
+        'minimum': 0.5,
+      });
       expect(Schema.boolean().toJsonSchema(), {'type': 'boolean'});
     });
 
@@ -92,7 +97,9 @@ void main() {
         containsAll([r'$.age', r'$.role', r'$.tags']),
       );
       expect(
-          violations.map((v) => v.message), everyElement(contains('missing')));
+        violations.map((v) => v.message),
+        everyElement(contains('missing')),
+      );
     });
 
     test('reports type mismatches with paths', () {
@@ -204,16 +211,17 @@ void main() {
     });
 
     test('tolerates unexpected properties when allowed', () {
-      final open = Schema.object(
-        {'name': Schema.string()},
-        allowAdditionalProperties: true,
-      );
+      final open = Schema.object({
+        'name': Schema.string(),
+      }, allowAdditionalProperties: true);
       expect(open.validate({'name': 'Ada', 'extra': 1}), isEmpty);
     });
 
     test('rejects non-object roots', () {
-      expect(schema.validate('nope').single.message,
-          contains('expected an object'));
+      expect(
+        schema.validate('nope').single.message,
+        contains('expected an object'),
+      );
       expect(schema.validate(null).single.message, contains('got null'));
     });
 
@@ -227,8 +235,10 @@ void main() {
       final s = Schema.integer(min: 0, max: 130);
       expect(s.validate(25.0), isEmpty);
       expect(s.validate(25.5).single.message, contains('expected an integer'));
-      expect(s.validate(double.nan).single.message,
-          contains('expected an integer'));
+      expect(
+        s.validate(double.nan).single.message,
+        contains('expected an integer'),
+      );
       expect(s.validate(200.0).single.message, contains('expected <= 130'));
     });
 

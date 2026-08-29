@@ -12,10 +12,10 @@ import 'package:instructor_dart/instructor_dart.dart';
 final class Person {
   const Person({required this.name, required this.age, this.city});
   factory Person.fromJson(Map<String, Object?> j) => Person(
-        name: j['name'] as String,
-        age: j['age'] as int,
-        city: j['city'] as String?,
-      );
+    name: j['name'] as String,
+    age: j['age'] as int,
+    city: j['city'] as String?,
+  );
   final String name;
   final int age;
   final String? city;
@@ -25,22 +25,22 @@ final class Person {
 
 /// One OpenAI-shaped response carrying a forced tool call with [arguments].
 http.Response _toolCall(String arguments) => http.Response(
-      jsonEncode({
-        'choices': [
-          {
-            'message': {
-              'tool_calls': [
-                {
-                  'function': {'name': 'extract', 'arguments': arguments},
-                },
-              ],
+  jsonEncode({
+    'choices': [
+      {
+        'message': {
+          'tool_calls': [
+            {
+              'function': {'name': 'extract', 'arguments': arguments},
             },
-          },
-        ],
-      }),
-      200,
-      headers: {'content-type': 'application/json'},
-    );
+          ],
+        },
+      },
+    ],
+  }),
+  200,
+  headers: {'content-type': 'application/json'},
+);
 
 Future<void> main() async {
   // The scripted model: age 999 first (out of the schema's 0..130 range), then
@@ -65,8 +65,10 @@ Future<void> main() async {
       'city': Schema.string().optional(),
     }),
     fromJson: Person.fromJson,
-    onRetry: (attempt) => print('attempt ${attempt.number} rejected: '
-        '${attempt.violations.join('; ')}'),
+    onRetry: (attempt) => print(
+      'attempt ${attempt.number} rejected: '
+      '${attempt.violations.join('; ')}',
+    ),
   );
 
   print('extracted: $person');

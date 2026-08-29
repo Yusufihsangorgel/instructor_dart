@@ -51,7 +51,10 @@ sealed class Schema {
   /// Every schema type lives in this library, so the recursion between them
   /// works with this private. Callers use [validate].
   void _collectViolations(
-      Object? value, String path, List<SchemaViolation> out);
+    Object? value,
+    String path,
+    List<SchemaViolation> out,
+  );
 
   /// Returns [value] coerced to the Dart type this schema guarantees.
   ///
@@ -70,9 +73,9 @@ sealed class Schema {
   Object? normalize(Object? value) => value;
 
   Map<String, Object?> _base(String type) => {
-        'type': type,
-        if (description != null) 'description': description,
-      };
+    'type': type,
+    if (description != null) 'description': description,
+  };
 
   /// An object with named [properties]. Properties are required unless
   /// marked with `optional()`.
@@ -84,12 +87,11 @@ sealed class Schema {
     Map<String, Schema> properties, {
     String? description,
     bool allowAdditionalProperties = false,
-  }) =>
-      ObjectSchema._(
-        Map<String, Schema>.unmodifiable(properties),
-        description: description,
-        allowAdditionalProperties: allowAdditionalProperties,
-      );
+  }) => ObjectSchema._(
+    Map<String, Schema>.unmodifiable(properties),
+    description: description,
+    allowAdditionalProperties: allowAdditionalProperties,
+  );
 
   /// A string, optionally constrained by length or a regular expression.
   ///
@@ -139,25 +141,24 @@ sealed class Schema {
     String? description,
     int? minItems,
     int? maxItems,
-  }) =>
-      ListSchema._(
-        items,
-        description: description,
-        minItems: minItems,
-        maxItems: maxItems,
-      );
+  }) => ListSchema._(
+    items,
+    description: description,
+    minItems: minItems,
+    maxItems: maxItems,
+  );
 }
 
 String _typeName(Object? value) => switch (value) {
-      null => 'null',
-      String() => 'a string',
-      bool() => 'a boolean',
-      int() => 'an integer',
-      double() => 'a number',
-      List() => 'a list',
-      Map() => 'an object',
-      _ => value.runtimeType.toString(),
-    };
+  null => 'null',
+  String() => 'a string',
+  bool() => 'a boolean',
+  int() => 'an integer',
+  double() => 'a number',
+  List() => 'a list',
+  Map() => 'an object',
+  _ => value.runtimeType.toString(),
+};
 
 /// Schema for string values. See [Schema.string].
 final class StringSchema extends Schema {
@@ -177,36 +178,48 @@ final class StringSchema extends Schema {
 
   /// A copy of this schema that may be omitted as an object property.
   StringSchema optional() => StringSchema._(
-        description: description,
-        isOptional: true,
-        minLength: minLength,
-        maxLength: maxLength,
-        pattern: pattern,
-      );
+    description: description,
+    isOptional: true,
+    minLength: minLength,
+    maxLength: maxLength,
+    pattern: pattern,
+  );
 
   @override
   Map<String, Object?> toJsonSchema() => {
-        ..._base('string'),
-        if (minLength != null) 'minLength': minLength,
-        if (maxLength != null) 'maxLength': maxLength,
-        if (pattern != null) 'pattern': pattern,
-      };
+    ..._base('string'),
+    if (minLength != null) 'minLength': minLength,
+    if (maxLength != null) 'maxLength': maxLength,
+    if (pattern != null) 'pattern': pattern,
+  };
 
   @override
   void _collectViolations(
-      Object? value, String path, List<SchemaViolation> out) {
+    Object? value,
+    String path,
+    List<SchemaViolation> out,
+  ) {
     if (value is! String) {
       out.add(
-          SchemaViolation(path, 'expected a string, got ${_typeName(value)}'));
+        SchemaViolation(path, 'expected a string, got ${_typeName(value)}'),
+      );
       return;
     }
     if (minLength != null && value.length < minLength!) {
-      out.add(SchemaViolation(path,
-          'expected at least $minLength characters, got ${value.length}'));
+      out.add(
+        SchemaViolation(
+          path,
+          'expected at least $minLength characters, got ${value.length}',
+        ),
+      );
     }
     if (maxLength != null && value.length > maxLength!) {
-      out.add(SchemaViolation(
-          path, 'expected at most $maxLength characters, got ${value.length}'));
+      out.add(
+        SchemaViolation(
+          path,
+          'expected at most $maxLength characters, got ${value.length}',
+        ),
+      );
     }
     if (pattern != null && !RegExp(pattern!).hasMatch(value)) {
       out.add(SchemaViolation(path, 'does not match pattern $pattern'));
@@ -221,33 +234,46 @@ final class StringSchema extends Schema {
 /// validation consistent between the Dart VM (where `jsonDecode('25.0')`
 /// yields a `double`) and the web (where it yields an `int`).
 final class IntegerSchema extends Schema {
-  const IntegerSchema._(
-      {super.description, super.isOptional, this.min, this.max});
+  const IntegerSchema._({
+    super.description,
+    super.isOptional,
+    this.min,
+    this.max,
+  });
 
   final int? min;
   final int? max;
 
   /// A copy of this schema that may be omitted as an object property.
   IntegerSchema optional() => IntegerSchema._(
-      description: description, isOptional: true, min: min, max: max);
+    description: description,
+    isOptional: true,
+    min: min,
+    max: max,
+  );
 
   @override
   Map<String, Object?> toJsonSchema() => {
-        ..._base('integer'),
-        if (min != null) 'minimum': min,
-        if (max != null) 'maximum': max,
-      };
+    ..._base('integer'),
+    if (min != null) 'minimum': min,
+    if (max != null) 'maximum': max,
+  };
 
   @override
   void _collectViolations(
-      Object? value, String path, List<SchemaViolation> out) {
-    final isIntegral = value is int ||
+    Object? value,
+    String path,
+    List<SchemaViolation> out,
+  ) {
+    final isIntegral =
+        value is int ||
         (value is double &&
             value.isFinite &&
             value.truncateToDouble() == value);
     if (!isIntegral) {
-      out.add(SchemaViolation(
-          path, 'expected an integer, got ${_typeName(value)}'));
+      out.add(
+        SchemaViolation(path, 'expected an integer, got ${_typeName(value)}'),
+      );
       return;
     }
     final number = value as num;
@@ -278,29 +304,41 @@ final class IntegerSchema extends Schema {
 
 /// Schema for numeric values (integer or double). See [Schema.number].
 final class NumberSchema extends Schema {
-  const NumberSchema._(
-      {super.description, super.isOptional, this.min, this.max});
+  const NumberSchema._({
+    super.description,
+    super.isOptional,
+    this.min,
+    this.max,
+  });
 
   final num? min;
   final num? max;
 
   /// A copy of this schema that may be omitted as an object property.
   NumberSchema optional() => NumberSchema._(
-      description: description, isOptional: true, min: min, max: max);
+    description: description,
+    isOptional: true,
+    min: min,
+    max: max,
+  );
 
   @override
   Map<String, Object?> toJsonSchema() => {
-        ..._base('number'),
-        if (min != null) 'minimum': min,
-        if (max != null) 'maximum': max,
-      };
+    ..._base('number'),
+    if (min != null) 'minimum': min,
+    if (max != null) 'maximum': max,
+  };
 
   @override
   void _collectViolations(
-      Object? value, String path, List<SchemaViolation> out) {
+    Object? value,
+    String path,
+    List<SchemaViolation> out,
+  ) {
     if (value is! num) {
       out.add(
-          SchemaViolation(path, 'expected a number, got ${_typeName(value)}'));
+        SchemaViolation(path, 'expected a number, got ${_typeName(value)}'),
+      );
       return;
     }
     if (min != null && value < min!) {
@@ -328,10 +366,14 @@ final class BooleanSchema extends Schema {
 
   @override
   void _collectViolations(
-      Object? value, String path, List<SchemaViolation> out) {
+    Object? value,
+    String path,
+    List<SchemaViolation> out,
+  ) {
     if (value is! bool) {
       out.add(
-          SchemaViolation(path, 'expected a boolean, got ${_typeName(value)}'));
+        SchemaViolation(path, 'expected a boolean, got ${_typeName(value)}'),
+      );
     }
   }
 }
@@ -348,17 +390,21 @@ final class EnumSchema extends Schema {
       EnumSchema._(values, description: description, isOptional: true);
 
   @override
-  Map<String, Object?> toJsonSchema() => {
-        ..._base('string'),
-        'enum': values,
-      };
+  Map<String, Object?> toJsonSchema() => {..._base('string'), 'enum': values};
 
   @override
   void _collectViolations(
-      Object? value, String path, List<SchemaViolation> out) {
+    Object? value,
+    String path,
+    List<SchemaViolation> out,
+  ) {
     if (value is! String || !values.contains(value)) {
-      out.add(SchemaViolation(
-          path, 'expected one of ${values.join(', ')}, got $value'));
+      out.add(
+        SchemaViolation(
+          path,
+          'expected one of ${values.join(', ')}, got $value',
+        ),
+      );
     }
   }
 }
@@ -379,36 +425,48 @@ final class ListSchema extends Schema {
 
   /// A copy of this schema that may be omitted as an object property.
   ListSchema optional() => ListSchema._(
-        items,
-        description: description,
-        isOptional: true,
-        minItems: minItems,
-        maxItems: maxItems,
-      );
+    items,
+    description: description,
+    isOptional: true,
+    minItems: minItems,
+    maxItems: maxItems,
+  );
 
   @override
   Map<String, Object?> toJsonSchema() => {
-        ..._base('array'),
-        'items': items.toJsonSchema(),
-        if (minItems != null) 'minItems': minItems,
-        if (maxItems != null) 'maxItems': maxItems,
-      };
+    ..._base('array'),
+    'items': items.toJsonSchema(),
+    if (minItems != null) 'minItems': minItems,
+    if (maxItems != null) 'maxItems': maxItems,
+  };
 
   @override
   void _collectViolations(
-      Object? value, String path, List<SchemaViolation> out) {
+    Object? value,
+    String path,
+    List<SchemaViolation> out,
+  ) {
     if (value is! List) {
       out.add(
-          SchemaViolation(path, 'expected a list, got ${_typeName(value)}'));
+        SchemaViolation(path, 'expected a list, got ${_typeName(value)}'),
+      );
       return;
     }
     if (minItems != null && value.length < minItems!) {
-      out.add(SchemaViolation(
-          path, 'expected at least $minItems items, got ${value.length}'));
+      out.add(
+        SchemaViolation(
+          path,
+          'expected at least $minItems items, got ${value.length}',
+        ),
+      );
     }
     if (maxItems != null && value.length > maxItems!) {
-      out.add(SchemaViolation(
-          path, 'expected at most $maxItems items, got ${value.length}'));
+      out.add(
+        SchemaViolation(
+          path,
+          'expected at most $maxItems items, got ${value.length}',
+        ),
+      );
     }
     for (var i = 0; i < value.length; i++) {
       items._collectViolations(value[i], '$path[$i]', out);
@@ -440,11 +498,11 @@ final class ObjectSchema extends Schema {
 
   /// A copy of this schema that may be omitted as an object property.
   ObjectSchema optional() => ObjectSchema._(
-        properties,
-        description: description,
-        isOptional: true,
-        allowAdditionalProperties: allowAdditionalProperties,
-      );
+    properties,
+    description: description,
+    isOptional: true,
+    allowAdditionalProperties: allowAdditionalProperties,
+  );
 
   @override
   Map<String, Object?> toJsonSchema() {
@@ -465,18 +523,26 @@ final class ObjectSchema extends Schema {
 
   @override
   void _collectViolations(
-      Object? value, String path, List<SchemaViolation> out) {
+    Object? value,
+    String path,
+    List<SchemaViolation> out,
+  ) {
     if (value is! Map) {
       out.add(
-          SchemaViolation(path, 'expected an object, got ${_typeName(value)}'));
+        SchemaViolation(path, 'expected an object, got ${_typeName(value)}'),
+      );
       return;
     }
     for (final entry in properties.entries) {
       final present = value.containsKey(entry.key);
       if (!present) {
         if (!entry.value.isOptional) {
-          out.add(SchemaViolation(
-              '$path.${entry.key}', 'required property is missing'));
+          out.add(
+            SchemaViolation(
+              '$path.${entry.key}',
+              'required property is missing',
+            ),
+          );
         }
         continue;
       }

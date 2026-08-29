@@ -13,8 +13,8 @@ final class LlmRequest {
     required this.toolName,
     required this.toolDescription,
     required Map<String, Object?> jsonSchema,
-  })  : messages = List.unmodifiable(messages),
-        jsonSchema = Map.unmodifiable(jsonSchema);
+  }) : messages = List.unmodifiable(messages),
+       jsonSchema = Map.unmodifiable(jsonSchema);
 
   final List<Message> messages;
   final String toolName;
@@ -39,19 +39,15 @@ final class LlmRequest {
 final class LlmResponse {
   /// The provider returned a tool call whose arguments the adapter parsed.
   const LlmResponse.toolCall(Map<String, Object?> arguments)
-      : toolArguments = arguments,
-        text = null;
+    : toolArguments = arguments,
+      text = null;
 
   /// The provider returned text: a plain answer, or a tool call whose
   /// arguments would not parse. Either way the caller looks for JSON in it.
-  const LlmResponse.text(String value)
-      : text = value,
-        toolArguments = null;
+  const LlmResponse.text(String value) : text = value, toolArguments = null;
 
   /// The provider returned nothing the adapter could use.
-  const LlmResponse.empty()
-      : toolArguments = null,
-        text = null;
+  const LlmResponse.empty() : toolArguments = null, text = null;
 
   /// Use [LlmResponse.toolCall], [LlmResponse.text] or [LlmResponse.empty].
   ///
@@ -59,8 +55,10 @@ final class LlmResponse {
   /// call and text at the same time. Only one of the two can be validated, so
   /// the other is silently dropped; the named constructors cannot express that
   /// state at all.
-  @Deprecated('Use LlmResponse.toolCall, LlmResponse.text or '
-      'LlmResponse.empty. This constructor will be removed in 2.0.0.')
+  @Deprecated(
+    'Use LlmResponse.toolCall, LlmResponse.text or '
+    'LlmResponse.empty. This constructor will be removed in 2.0.0.',
+  )
   const LlmResponse({this.toolArguments, this.text});
 
   final Map<String, Object?>? toolArguments;

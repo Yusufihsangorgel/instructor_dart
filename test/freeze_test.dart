@@ -42,7 +42,9 @@ void main() {
     test('a difference in either field breaks equality', () {
       const base = SchemaViolation(r'$.age', 'must be an integer');
       expect(
-          base, isNot(const SchemaViolation(r'$.name', 'must be an integer')));
+        base,
+        isNot(const SchemaViolation(r'$.name', 'must be an integer')),
+      );
       expect(base, isNot(const SchemaViolation(r'$.age', 'must be a string')));
     });
   });
@@ -81,8 +83,10 @@ void main() {
       expect(req.jsonSchema.containsKey('injected'), isFalse);
 
       // And the request's own copies are unmodifiable.
-      expect(() => req.messages.add(const Message.user('x')),
-          throwsUnsupportedError);
+      expect(
+        () => req.messages.add(const Message.user('x')),
+        throwsUnsupportedError,
+      );
       expect(() => req.jsonSchema['x'] = 1, throwsUnsupportedError);
     });
   });

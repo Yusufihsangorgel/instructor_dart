@@ -36,11 +36,9 @@ void main() {
     final adapter = _ScriptedAdapter([
       const LlmResponse.toolCall({'name': 'John', 'age': 25}),
     ]);
-    final person = await Instructor(adapter: adapter).extract(
-      messages: messages,
-      schema: schema,
-      fromJson: _Person.fromJson,
-    );
+    final person = await Instructor(
+      adapter: adapter,
+    ).extract(messages: messages, schema: schema, fromJson: _Person.fromJson);
     expect(person.name, 'John');
     expect(person.age, 25);
     expect(adapter.requests, hasLength(1));
@@ -50,7 +48,8 @@ void main() {
   test('parses JSON out of plain text and fenced blocks', () async {
     final adapter = _ScriptedAdapter([
       const LlmResponse.text(
-          'Sure:\n```json\n{"name": "John", "age": 25}\n```'),
+        'Sure:\n```json\n{"name": "John", "age": 25}\n```',
+      ),
     ]);
     final raw = await Instructor(adapter: adapter)
         .extractRaw(messages: messages, schema: schema);
@@ -63,11 +62,8 @@ void main() {
       const LlmResponse.toolCall({'name': 'John', 'age': 25}),
     ]);
     final retries = <ExtractionAttempt>[];
-    final raw = await Instructor(adapter: adapter).extractRaw(
-      messages: messages,
-      schema: schema,
-      onRetry: retries.add,
-    );
+    final raw = await Instructor(adapter: adapter)
+        .extractRaw(messages: messages, schema: schema, onRetry: retries.add);
 
     expect(raw['age'], 25);
     expect(retries, hasLength(1));
@@ -88,24 +84,27 @@ void main() {
       const LlmResponse.toolCall({'name': 7, 'age': 25}),
     ]);
     await expectLater(
-      Instructor(adapter: adapter).extractRaw(
-        messages: messages,
-        schema: schema,
-        maxRetries: 1,
+      Instructor(adapter: adapter)
+          .extractRaw(messages: messages, schema: schema, maxRetries: 1),
+      throwsA(
+        isA<ExtractionException>()
+            .having((e) => e.attempts, 'attempts', hasLength(2))
+            .having(
+              (e) => e.attempts.first.violations.single.message,
+              'first attempt',
+              contains('not a JSON object'),
+            )
+            .having(
+              (e) => e.attempts.last.violations.single.path,
+              'last attempt path',
+              r'$.name',
+            ),
       ),
-      throwsA(isA<ExtractionException>()
-          .having((e) => e.attempts, 'attempts', hasLength(2))
-          .having((e) => e.attempts.first.violations.single.message,
-              'first attempt', contains('not a JSON object'))
-          .having((e) => e.attempts.last.violations.single.path,
-              'last attempt path', r'$.name')),
     );
   });
 
   test('maxRetries: 0 gives exactly one attempt', () async {
-    final adapter = _ScriptedAdapter([
-      const LlmResponse.text('nope'),
-    ]);
+    final adapter = _ScriptedAdapter([const LlmResponse.text('nope')]);
     await expectLater(
       Instructor(adapter: adapter)
           .extractRaw(messages: messages, schema: schema, maxRetries: 0),
@@ -117,8 +116,9 @@ void main() {
   test('rejects negative maxRetries', () {
     final adapter = _ScriptedAdapter([]);
     expect(
-      () => Instructor(adapter: adapter)
-          .extractRaw(messages: messages, schema: schema, maxRetries: -1),
+      () =>
+          Instructor(adapter: adapter)
+              .extractRaw(messages: messages, schema: schema, maxRetries: -1),
       throwsArgumentError,
     );
   });
@@ -145,46 +145,50 @@ void main() {
     expect(raw['scores'], [1, 2.5]);
   });
 
-  test('whole-valued number field decodes to double, integer stays int',
-      () async {
-    // A model often writes a whole number like 42 for a `number` field. It
-    // must arrive as a double so `json['price'] as double` in fromJson does
-    // not throw, while an `integer` field given the same value stays an int.
-    final adapter = _ScriptedAdapter([
-      const LlmResponse.toolCall({'price': 42, 'age': 42}),
-    ]);
-    final schema = Schema.object({
-      'price': Schema.number(),
-      'age': Schema.integer(),
-    });
-    final raw = await Instructor(adapter: adapter)
-        .extractRaw(messages: messages, schema: schema);
-    expect(raw['price'], isA<double>());
-    expect(raw['price'], 42.0);
-    expect(() => raw['price'] as double, returnsNormally);
-    expect(raw['age'], isA<int>());
-    expect(raw['age'], same(42));
-    expect(() => raw['age'] as int, returnsNormally);
-  });
+  test(
+    'whole-valued number field decodes to double, integer stays int',
+    () async {
+      // A model often writes a whole number like 42 for a `number` field. It
+      // must arrive as a double so `json['price'] as double` in fromJson does
+      // not throw, while an `integer` field given the same value stays an int.
+      final adapter = _ScriptedAdapter([
+        const LlmResponse.toolCall({'price': 42, 'age': 42}),
+      ]);
+      final schema = Schema.object({
+        'price': Schema.number(),
+        'age': Schema.integer(),
+      });
+      final raw = await Instructor(adapter: adapter)
+          .extractRaw(messages: messages, schema: schema);
+      expect(raw['price'], isA<double>());
+      expect(raw['price'], 42.0);
+      expect(() => raw['price'] as double, returnsNormally);
+      expect(raw['age'], isA<int>());
+      expect(raw['age'], same(42));
+      expect(() => raw['age'] as int, returnsNormally);
+    },
+  );
 
-  test('accepts an explicit null on an optional field without retrying',
-      () async {
-    // Forced tool calling on OpenAI, Anthropic and Gemini fills in every
-    // declared parameter; a field the model has no value for arrives as an
-    // explicit `null` rather than an omitted key.
-    final adapter = _ScriptedAdapter([
-      const LlmResponse.toolCall({'name': 'John', 'age': 25, 'city': null}),
-    ]);
-    final withCity = Schema.object({
-      'name': Schema.string(),
-      'age': Schema.integer(min: 0),
-      'city': Schema.string().optional(),
-    });
-    final raw = await Instructor(adapter: adapter)
-        .extractRaw(messages: messages, schema: withCity);
-    expect(raw, {'name': 'John', 'age': 25, 'city': null});
-    expect(adapter.requests, hasLength(1));
-  });
+  test(
+    'accepts an explicit null on an optional field without retrying',
+    () async {
+      // Forced tool calling on OpenAI, Anthropic and Gemini fills in every
+      // declared parameter; a field the model has no value for arrives as an
+      // explicit `null` rather than an omitted key.
+      final adapter = _ScriptedAdapter([
+        const LlmResponse.toolCall({'name': 'John', 'age': 25, 'city': null}),
+      ]);
+      final withCity = Schema.object({
+        'name': Schema.string(),
+        'age': Schema.integer(min: 0),
+        'city': Schema.string().optional(),
+      });
+      final raw = await Instructor(adapter: adapter)
+          .extractRaw(messages: messages, schema: withCity);
+      expect(raw, {'name': 'John', 'age': 25, 'city': null});
+      expect(adapter.requests, hasLength(1));
+    },
+  );
 
   test('fractional doubles still fail integer validation', () async {
     final adapter = _ScriptedAdapter([
@@ -197,10 +201,8 @@ void main() {
     );
   });
 
-  group('the response the validator judged is the one that gets echoed back',
-      () {
-    test(
-        'resolves a both-set response the same way for validation and for '
+  group('the response the validator judged is the one that gets echoed back', () {
+    test('resolves a both-set response the same way for validation and for '
         'the repair echo', () async {
       // The package's own three adapters cannot produce this, but LlmAdapter is
       // meant to be extended and all three providers can put text and a tool
@@ -215,15 +217,23 @@ void main() {
       await expectLater(
         Instructor(adapter: adapter)
             .extractRaw(messages: messages, schema: schema, maxRetries: 0),
-        throwsA(isA<ExtractionException>().having(
-          (e) => e.attempts.single,
-          'the one attempt',
-          isA<ExtractionAttempt>()
-              .having(
-                  (a) => a.violations.single.path, 'violation path', r'$.age')
-              .having((a) => a.rawResponse, 'rawResponse',
-                  '{"name":"Jane","age":-5}'),
-        )),
+        throwsA(
+          isA<ExtractionException>().having(
+            (e) => e.attempts.single,
+            'the one attempt',
+            isA<ExtractionAttempt>()
+                .having(
+                  (a) => a.violations.single.path,
+                  'violation path',
+                  r'$.age',
+                )
+                .having(
+                  (a) => a.rawResponse,
+                  'rawResponse',
+                  '{"name":"Jane","age":-5}',
+                ),
+          ),
+        ),
       );
     });
 
@@ -261,18 +271,22 @@ void main() {
       expect(adapter.requests[1].messages[1].content, reply);
     });
 
-    test('keeps echoing encoded arguments when only a tool call was returned',
-        () async {
-      final adapter = _ScriptedAdapter([
-        const LlmResponse.toolCall({'name': 'John', 'age': -1}),
-        const LlmResponse.toolCall({'name': 'John', 'age': 25}),
-      ]);
-      await Instructor(adapter: adapter)
-          .extractRaw(messages: messages, schema: schema, maxRetries: 1);
+    test(
+      'keeps echoing encoded arguments when only a tool call was returned',
+      () async {
+        final adapter = _ScriptedAdapter([
+          const LlmResponse.toolCall({'name': 'John', 'age': -1}),
+          const LlmResponse.toolCall({'name': 'John', 'age': 25}),
+        ]);
+        await Instructor(adapter: adapter)
+            .extractRaw(messages: messages, schema: schema, maxRetries: 1);
 
-      expect(
-          adapter.requests[1].messages[1].content, '{"name":"John","age":-1}');
-    });
+        expect(
+          adapter.requests[1].messages[1].content,
+          '{"name":"John","age":-1}',
+        );
+      },
+    );
 
     test('reports no-content when the adapter returned neither', () async {
       final adapter = _ScriptedAdapter([
@@ -287,8 +301,10 @@ void main() {
         onRetry: retries.add,
       );
 
-      expect(retries.single.violations.single.message,
-          'model returned neither a tool call nor text');
+      expect(
+        retries.single.violations.single.message,
+        'model returned neither a tool call nor text',
+      );
       expect(retries.single.rawResponse, isEmpty);
       expect(adapter.requests[1].messages[1].content, '(no content)');
     });
@@ -297,24 +313,28 @@ void main() {
       // `{}` is a tool call that happens to carry nothing, not an absent one.
       // Resolving on emptiness instead of nullness would misreport it as
       // "neither a tool call nor text" and hide the real problem.
-      final adapter = _ScriptedAdapter([
-        const LlmResponse.toolCall({}),
-      ]);
+      final adapter = _ScriptedAdapter([const LlmResponse.toolCall({})]);
       await expectLater(
         Instructor(adapter: adapter)
             .extractRaw(messages: messages, schema: schema, maxRetries: 0),
-        throwsA(isA<ExtractionException>().having(
-          (e) => e.attempts.single,
-          'the one attempt',
-          isA<ExtractionAttempt>().having(
-              (a) => a.violations.map((v) => v.path).toList(), 'paths', [
-            r'$.name',
-            r'$.age'
-          ]).having(
-              (a) => a.violations.map((v) => v.message).toSet(), 'messages', {
-            'required property is missing'
-          }).having((a) => a.rawResponse, 'rawResponse', '{}'),
-        )),
+        throwsA(
+          isA<ExtractionException>().having(
+            (e) => e.attempts.single,
+            'the one attempt',
+            isA<ExtractionAttempt>()
+                .having(
+                  (a) => a.violations.map((v) => v.path).toList(),
+                  'paths',
+                  [r'$.name', r'$.age'],
+                )
+                .having(
+                  (a) => a.violations.map((v) => v.message).toSet(),
+                  'messages',
+                  {'required property is missing'},
+                )
+                .having((a) => a.rawResponse, 'rawResponse', '{}'),
+          ),
+        ),
       );
     });
   });

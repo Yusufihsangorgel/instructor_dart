@@ -62,8 +62,9 @@ void main() {
     final raw = await Instructor(adapter: adapter).extractRaw(
       messages: const [
         Message.user(
-            'Extract the person: "Grace Hopper was 85 years old and lived '
-            'in Arlington."'),
+          'Extract the person: "Grace Hopper was 85 years old and lived '
+          'in Arlington."',
+        ),
       ],
       schema: Schema.object({
         'name': Schema.string(description: 'Full name of the person'),

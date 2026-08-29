@@ -22,12 +22,12 @@ final class OpenAIAdapter extends LlmAdapter {
     http.Client? client,
     this.temperature,
     this.timeout = const Duration(seconds: 60),
-  })  : _apiKey = apiKey,
-        _baseUrl = baseUrl.endsWith('/')
-            ? baseUrl.substring(0, baseUrl.length - 1)
-            : baseUrl,
-        _client = client ?? http.Client(),
-        _ownsClient = client == null;
+  }) : _apiKey = apiKey,
+       _baseUrl = baseUrl.endsWith('/')
+           ? baseUrl.substring(0, baseUrl.length - 1)
+           : baseUrl,
+       _client = client ?? http.Client(),
+       _ownsClient = client == null;
 
   final String model;
   final double? temperature;
@@ -82,8 +82,10 @@ final class OpenAIAdapter extends LlmAdapter {
       // A dropped connection, a timeout, or a closed client: no response, so
       // no status code. package:http and dart:io report these as several
       // different types; funnel them all into one the caller can catch.
-      throw AdapterException.transport('request to the OpenAI API failed',
-          cause: e);
+      throw AdapterException.transport(
+        'request to the OpenAI API failed',
+        cause: e,
+      );
     }
     final body = utf8.decode(response.bodyBytes);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -95,11 +97,15 @@ final class OpenAIAdapter extends LlmAdapter {
       decoded = jsonDecode(body);
     } on FormatException {
       throw AdapterException(
-          response.statusCode, 'response body is not JSON: $body');
+        response.statusCode,
+        'response body is not JSON: $body',
+      );
     }
     if (decoded is! Map<String, dynamic>) {
       throw AdapterException(
-          response.statusCode, 'unexpected response shape: $body');
+        response.statusCode,
+        'unexpected response shape: $body',
+      );
     }
     // The nested reads below cast into the shape a spec-compliant server sends.
     // A compatible server (Ollama, LM Studio, vLLM, OpenRouter) can differ, and
@@ -112,14 +118,16 @@ final class OpenAIAdapter extends LlmAdapter {
       if (choices == null || choices.isEmpty) {
         return const LlmResponse.empty();
       }
-      final message = (choices.first as Map<String, dynamic>)['message']
-          as Map<String, dynamic>?;
+      final message =
+          (choices.first as Map<String, dynamic>)['message']
+              as Map<String, dynamic>?;
       if (message == null) return const LlmResponse.empty();
 
       final toolCalls = message['tool_calls'] as List?;
       if (toolCalls != null && toolCalls.isNotEmpty) {
-        final function = (toolCalls.first as Map<String, dynamic>)['function']
-            as Map<String, dynamic>?;
+        final function =
+            (toolCalls.first as Map<String, dynamic>)['function']
+                as Map<String, dynamic>?;
         final arguments = function?['arguments'];
         // Per spec `arguments` is a JSON string, but some compatible servers
         // send an already-parsed object.
@@ -154,8 +162,10 @@ final class OpenAIAdapter extends LlmAdapter {
       return const LlmResponse.empty();
     } on TypeError catch (e) {
       throw AdapterException(
-          response.statusCode, 'unexpected response shape: $body',
-          cause: e);
+        response.statusCode,
+        'unexpected response shape: $body',
+        cause: e,
+      );
     }
   }
 

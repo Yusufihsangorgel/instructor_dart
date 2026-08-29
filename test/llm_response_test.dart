@@ -34,18 +34,20 @@ void main() {
       expect(response.toolArguments, isNull);
     });
 
-    test('the deprecated unnamed constructor still carries what it was given',
-        () {
-      // Deprecating it must not change what it does. An adapter that has not
-      // migrated yet keeps working; it only gets a warning telling it which
-      // constructor to move to.
-      const response = LlmResponse(
-        toolArguments: {'name': 'John'},
-        text: 'commentary the caller does not need',
-      );
+    test(
+      'the deprecated unnamed constructor still carries what it was given',
+      () {
+        // Deprecating it must not change what it does. An adapter that has not
+        // migrated yet keeps working; it only gets a warning telling it which
+        // constructor to move to.
+        const response = LlmResponse(
+          toolArguments: {'name': 'John'},
+          text: 'commentary the caller does not need',
+        );
 
-      expect(response.toolArguments, {'name': 'John'});
-      expect(response.text, 'commentary the caller does not need');
-    });
+        expect(response.toolArguments, {'name': 'John'});
+        expect(response.text, 'commentary the caller does not need');
+      },
+    );
   });
 }

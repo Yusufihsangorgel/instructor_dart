@@ -66,8 +66,8 @@ Future<void> requireOllama() async {
     'pulled.\n'
     '  ollama pull $ollamaModel\n'
     '${usable.isEmpty ? '' : 'Or use one you already have, '
-        '${usable.join(', ')}:\n'
-        '  OLLAMA_MODEL=${usable.first} dart run $_script\n'}'
+              '${usable.join(', ')}:\n'
+              '  OLLAMA_MODEL=${usable.first} dart run $_script\n'}'
     '\n'
     '$_seeItWithoutAModel',
   );

@@ -7,14 +7,11 @@ import 'package:instructor_dart/instructor_dart.dart';
 import 'package:test/test.dart';
 
 LlmRequest _request() => LlmRequest(
-      messages: const [
-        Message.system('Be precise.'),
-        Message.user('John is 25.'),
-      ],
-      toolName: 'extract',
-      toolDescription: 'Record the extracted data.',
-      jsonSchema: Schema.object({'name': Schema.string()}).toJsonSchema(),
-    );
+  messages: const [Message.system('Be precise.'), Message.user('John is 25.')],
+  toolName: 'extract',
+  toolDescription: 'Record the extracted data.',
+  jsonSchema: Schema.object({'name': Schema.string()}).toJsonSchema(),
+);
 
 void main() {
   group('OpenAIAdapter', () {
@@ -46,13 +43,18 @@ void main() {
         );
       });
 
-      final adapter =
-          OpenAIAdapter(apiKey: 'key', model: 'test-model', client: client);
+      final adapter = OpenAIAdapter(
+        apiKey: 'key',
+        model: 'test-model',
+        client: client,
+      );
       final response = await adapter.complete(_request());
 
       expect(response.toolArguments, {'name': 'John'});
-      expect(captured.url.toString(),
-          'https://api.openai.com/v1/chat/completions');
+      expect(
+        captured.url.toString(),
+        'https://api.openai.com/v1/chat/completions',
+      );
 
       final body = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(body['model'], 'test-model');
@@ -64,8 +66,9 @@ void main() {
         {'role': 'system', 'content': 'Be precise.'},
         {'role': 'user', 'content': 'John is 25.'},
       ]);
-      final tool = ((body['tools'] as List).single
-          as Map<String, dynamic>)['function'] as Map<String, dynamic>;
+      final tool =
+          ((body['tools'] as List).single as Map<String, dynamic>)['function']
+              as Map<String, dynamic>;
       expect(tool['parameters'], containsPair('type', 'object'));
     });
 
@@ -86,22 +89,24 @@ void main() {
     });
 
     test('returns malformed tool arguments as text for repair', () async {
-      final client = MockClient((request) async => http.Response(
-            jsonEncode({
-              'choices': [
-                {
-                  'message': {
-                    'tool_calls': [
-                      {
-                        'function': {'name': 'extract', 'arguments': '{oops'},
-                      },
-                    ],
-                  },
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {
+                  'tool_calls': [
+                    {
+                      'function': {'name': 'extract', 'arguments': '{oops'},
+                    },
+                  ],
                 },
-              ],
-            }),
-            200,
-          ));
+              },
+            ],
+          }),
+          200,
+        ),
+      );
       final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
       final response = await adapter.complete(_request());
       expect(response.toolArguments, isNull);
@@ -109,13 +114,19 @@ void main() {
     });
 
     test('throws AdapterException on non-2xx responses', () async {
-      final client =
-          MockClient((request) async => http.Response('rate limited', 429));
+      final client = MockClient(
+        (request) async => http.Response('rate limited', 429),
+      );
       final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
       await expectLater(
         adapter.complete(_request()),
-        throwsA(isA<AdapterException>()
-            .having((e) => e.statusCode, 'statusCode', 429)),
+        throwsA(
+          isA<AdapterException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            429,
+          ),
+        ),
       );
     });
   });
@@ -139,8 +150,11 @@ void main() {
         );
       });
 
-      final adapter =
-          AnthropicAdapter(apiKey: 'key', model: 'test-model', client: client);
+      final adapter = AnthropicAdapter(
+        apiKey: 'key',
+        model: 'test-model',
+        client: client,
+      );
       final response = await adapter.complete(_request());
 
       expect(response.toolArguments, {'name': 'John'});
@@ -159,68 +173,95 @@ void main() {
     });
 
     test('falls back to concatenated text blocks', () async {
-      final client = MockClient((request) async => http.Response(
-            jsonEncode({
-              'content': [
-                {'type': 'text', 'text': '{"name":'},
-                {'type': 'text', 'text': ' "John"}'},
-              ],
-            }),
-            200,
-          ));
-      final adapter =
-          AnthropicAdapter(apiKey: 'key', model: 'm', client: client);
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'content': [
+              {'type': 'text', 'text': '{"name":'},
+              {'type': 'text', 'text': ' "John"}'},
+            ],
+          }),
+          200,
+        ),
+      );
+      final adapter = AnthropicAdapter(
+        apiKey: 'key',
+        model: 'm',
+        client: client,
+      );
       final response = await adapter.complete(_request());
       expect(response.text, '{"name": "John"}');
     });
 
     test('throws AdapterException on non-2xx responses', () async {
-      final client =
-          MockClient((request) async => http.Response('overloaded', 529));
-      final adapter =
-          AnthropicAdapter(apiKey: 'key', model: 'm', client: client);
+      final client = MockClient(
+        (request) async => http.Response('overloaded', 529),
+      );
+      final adapter = AnthropicAdapter(
+        apiKey: 'key',
+        model: 'm',
+        client: client,
+      );
       await expectLater(
         adapter.complete(_request()),
-        throwsA(isA<AdapterException>()
-            .having((e) => e.statusCode, 'statusCode', 529)),
+        throwsA(
+          isA<AdapterException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            529,
+          ),
+        ),
       );
     });
 
     test('throws when the response was truncated at max_tokens', () async {
-      final client = MockClient((request) async => http.Response(
-            jsonEncode({
-              'stop_reason': 'max_tokens',
-              'content': [
-                {
-                  'type': 'tool_use',
-                  'name': 'extract',
-                  'input': {'name': 'Jo'},
-                },
-              ],
-            }),
-            200,
-          ));
-      final adapter =
-          AnthropicAdapter(apiKey: 'key', model: 'm', client: client);
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'stop_reason': 'max_tokens',
+            'content': [
+              {
+                'type': 'tool_use',
+                'name': 'extract',
+                'input': {'name': 'Jo'},
+              },
+            ],
+          }),
+          200,
+        ),
+      );
+      final adapter = AnthropicAdapter(
+        apiKey: 'key',
+        model: 'm',
+        client: client,
+      );
       await expectLater(
         adapter.complete(_request()),
-        throwsA(isA<AdapterException>()
-            .having((e) => e.body, 'body', contains('max_tokens'))),
+        throwsA(
+          isA<AdapterException>().having(
+            (e) => e.body,
+            'body',
+            contains('max_tokens'),
+          ),
+        ),
       );
     });
 
     test('rejects requests with no non-system messages', () async {
       final adapter = AnthropicAdapter(
-          apiKey: 'key',
-          model: 'm',
-          client: MockClient((r) async => http.Response('', 200)));
+        apiKey: 'key',
+        model: 'm',
+        client: MockClient((r) async => http.Response('', 200)),
+      );
       await expectLater(
-        adapter.complete(LlmRequest(
-          messages: const [Message.system('only system')],
-          toolName: 'extract',
-          toolDescription: 'd',
-          jsonSchema: Schema.object({'a': Schema.string()}).toJsonSchema(),
-        )),
+        adapter.complete(
+          LlmRequest(
+            messages: const [Message.system('only system')],
+            toolName: 'extract',
+            toolDescription: 'd',
+            jsonSchema: Schema.object({'a': Schema.string()}).toJsonSchema(),
+          ),
+        ),
         throwsArgumentError,
       );
     });
@@ -228,46 +269,50 @@ void main() {
 
   group('OpenAIAdapter response variants', () {
     test('accepts tool arguments that are already a JSON object', () async {
-      final client = MockClient((request) async => http.Response(
-            jsonEncode({
-              'choices': [
-                {
-                  'message': {
-                    'tool_calls': [
-                      {
-                        'function': {
-                          'name': 'extract',
-                          'arguments': {'name': 'John'},
-                        },
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {
+                  'tool_calls': [
+                    {
+                      'function': {
+                        'name': 'extract',
+                        'arguments': {'name': 'John'},
                       },
-                    ],
-                  },
+                    },
+                  ],
                 },
-              ],
-            }),
-            200,
-          ));
+              },
+            ],
+          }),
+          200,
+        ),
+      );
       final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
       final response = await adapter.complete(_request());
       expect(response.toolArguments, {'name': 'John'});
     });
 
     test('joins content-part arrays into text', () async {
-      final client = MockClient((request) async => http.Response(
-            jsonEncode({
-              'choices': [
-                {
-                  'message': {
-                    'content': [
-                      {'type': 'text', 'text': '{"name":'},
-                      {'type': 'text', 'text': ' "John"}'},
-                    ],
-                  },
+      final client = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {
+                  'content': [
+                    {'type': 'text', 'text': '{"name":'},
+                    {'type': 'text', 'text': ' "John"}'},
+                  ],
                 },
-              ],
-            }),
-            200,
-          ));
+              },
+            ],
+          }),
+          200,
+        ),
+      );
       final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
       final response = await adapter.complete(_request());
       expect(response.text, '{"name": "John"}');
@@ -275,12 +320,18 @@ void main() {
 
     test('wraps non-JSON 200 bodies in AdapterException', () async {
       final client = MockClient(
-          (request) async => http.Response('<html>gateway error</html>', 200));
+        (request) async => http.Response('<html>gateway error</html>', 200),
+      );
       final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
       await expectLater(
         adapter.complete(_request()),
-        throwsA(isA<AdapterException>()
-            .having((e) => e.body, 'body', contains('not JSON'))),
+        throwsA(
+          isA<AdapterException>().having(
+            (e) => e.body,
+            'body',
+            contains('not JSON'),
+          ),
+        ),
       );
     });
 
@@ -291,59 +342,69 @@ void main() {
     // are exactly where these shapes turn up.
     final oddShapes = <String, Object>{
       'choices is an object': {
-        'choices': {'a': 1}
+        'choices': {'a': 1},
       },
       'choices[0] is a string': {
-        'choices': ['hello']
+        'choices': ['hello'],
       },
       'tool_calls[0] is a number': {
         'choices': [
           {
             'message': {
-              'tool_calls': [5]
-            }
-          }
-        ]
+              'tool_calls': [5],
+            },
+          },
+        ],
       },
       'content part text is a number': {
         'choices': [
           {
             'message': {
               'content': [
-                {'type': 'text', 'text': 7}
-              ]
-            }
-          }
-        ]
+                {'type': 'text', 'text': 7},
+              ],
+            },
+          },
+        ],
       },
     };
     oddShapes.forEach((label, body) {
       test('a 2xx $label is an AdapterException, not a TypeError', () async {
-        final client = MockClient((_) async => http.Response(
-              jsonEncode(body),
-              200,
-              headers: {'content-type': 'application/json'},
-            ));
-        final adapter =
-            OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
+        final client = MockClient(
+          (_) async => http.Response(
+            jsonEncode(body),
+            200,
+            headers: {'content-type': 'application/json'},
+          ),
+        );
+        final adapter = OpenAIAdapter(
+          apiKey: 'key',
+          model: 'm',
+          client: client,
+        );
         await expectLater(
           adapter.complete(_request()),
-          throwsA(isA<AdapterException>()
-              .having((e) => e.statusCode, 'statusCode', 200)
-              .having((e) => e.cause, 'cause', isA<TypeError>())),
+          throwsA(
+            isA<AdapterException>()
+                .having((e) => e.statusCode, 'statusCode', 200)
+                .having((e) => e.cause, 'cause', isA<TypeError>()),
+          ),
         );
       });
     });
 
     test('a transport failure is an AdapterException.transport', () async {
-      final client =
-          MockClient((_) async => throw const SocketException('refused'));
+      final client = MockClient(
+        (_) async => throw const SocketException('refused'),
+      );
       final adapter = OpenAIAdapter(apiKey: 'key', model: 'm', client: client);
       await expectLater(
         adapter.complete(_request()),
-        throwsA(isA<AdapterException>()
-            .having((e) => e.statusCode, 'statusCode', isNull)
-            .having((e) => e.cause, 'cause', isA<SocketException>())),
+        throwsA(
+          isA<AdapterException>()
+              .having((e) => e.statusCode, 'statusCode', isNull)
+              .having((e) => e.cause, 'cause', isA<SocketException>()),
+        ),
       );
     });
   });

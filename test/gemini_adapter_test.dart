@@ -6,105 +6,109 @@ import 'package:instructor_dart/instructor_dart.dart';
 import 'package:test/test.dart';
 
 LlmRequest _request() => LlmRequest(
-      messages: const [
-        Message.system('Be precise.'),
-        Message.user('John is 25.'),
-        Message.assistant('Understood.'),
-      ],
-      toolName: 'extract',
-      toolDescription: 'Record the extracted data.',
-      jsonSchema: Schema.object({'name': Schema.string()}).toJsonSchema(),
-    );
+  messages: const [
+    Message.system('Be precise.'),
+    Message.user('John is 25.'),
+    Message.assistant('Understood.'),
+  ],
+  toolName: 'extract',
+  toolDescription: 'Record the extracted data.',
+  jsonSchema: Schema.object({'name': Schema.string()}).toJsonSchema(),
+);
 
 http.Response _functionCallResponse(Map<String, Object?> args) => http.Response(
-      jsonEncode({
-        'candidates': [
-          {
-            'content': {
-              'parts': [
-                {
-                  'functionCall': {'name': 'extract', 'args': args},
-                },
-              ],
-              'role': 'model',
+  jsonEncode({
+    'candidates': [
+      {
+        'content': {
+          'parts': [
+            {
+              'functionCall': {'name': 'extract', 'args': args},
             },
-          },
-        ],
-      }),
-      200,
-      headers: {'content-type': 'application/json'},
-    );
+          ],
+          'role': 'model',
+        },
+      },
+    ],
+  }),
+  200,
+  headers: {'content-type': 'application/json'},
+);
 
 void main() {
   group('GeminiAdapter', () {
-    test('builds a forced function call in Gemini\'s documented shape',
-        () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _functionCallResponse({'name': 'John'});
-      });
+    test(
+      'builds a forced function call in Gemini\'s documented shape',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _functionCallResponse({'name': 'John'});
+        });
 
-      final adapter = GeminiAdapter(
-        apiKey: 'secret',
-        model: 'gemini-2.0-flash',
-        client: client,
-      );
-      final response = await adapter.complete(_request());
+        final adapter = GeminiAdapter(
+          apiKey: 'secret',
+          model: 'gemini-2.0-flash',
+          client: client,
+        );
+        final response = await adapter.complete(_request());
 
-      // Endpoint: models/<model>:generateContent under the version root.
-      expect(
-        captured.url.toString(),
-        'https://generativelanguage.googleapis.com/v1beta/models/'
-        'gemini-2.0-flash:generateContent',
-      );
-      // The key goes in the header, so it never lands in a URL or a log.
-      expect(captured.headers['x-goog-api-key'], 'secret');
-      expect(captured.url.query, isEmpty);
+        // Endpoint: models/<model>:generateContent under the version root.
+        expect(
+          captured.url.toString(),
+          'https://generativelanguage.googleapis.com/v1beta/models/'
+          'gemini-2.0-flash:generateContent',
+        );
+        // The key goes in the header, so it never lands in a URL or a log.
+        expect(captured.headers['x-goog-api-key'], 'secret');
+        expect(captured.url.query, isEmpty);
 
-      final body = jsonDecode(captured.body) as Map<String, dynamic>;
+        final body = jsonDecode(captured.body) as Map<String, dynamic>;
 
-      // System text is not a message in Gemini; it is systemInstruction.
-      expect(
-        (body['systemInstruction'] as Map)['parts'],
-        [
+        // System text is not a message in Gemini; it is systemInstruction.
+        expect((body['systemInstruction'] as Map)['parts'], [
           {'text': 'Be precise.'},
-        ],
-      );
+        ]);
 
-      // contents carries only user and model roles, in order.
-      expect(body['contents'], [
-        {
-          'role': 'user',
-          'parts': [
-            {'text': 'John is 25.'},
-          ],
-        },
-        {
-          'role': 'model',
-          'parts': [
-            {'text': 'Understood.'},
-          ],
-        },
-      ]);
+        // contents carries only user and model roles, in order.
+        expect(body['contents'], [
+          {
+            'role': 'user',
+            'parts': [
+              {'text': 'John is 25.'},
+            ],
+          },
+          {
+            'role': 'model',
+            'parts': [
+              {'text': 'Understood.'},
+            ],
+          },
+        ]);
 
-      // The schema rides as a function declaration, forced with mode ANY.
-      final declaration = ((body['tools'] as List).first
-          as Map)['functionDeclarations'] as List;
-      expect((declaration.first as Map)['name'], 'extract');
-      expect((declaration.first as Map)['description'],
-          'Record the extracted data.');
-      expect((declaration.first as Map)['parameters'],
-          Schema.object({'name': Schema.string()}).toJsonSchema());
-      final config =
-          (body['toolConfig'] as Map)['functionCallingConfig'] as Map;
-      expect(config['mode'], 'ANY');
-      expect(config['allowedFunctionNames'], ['extract']);
+        // The schema rides as a function declaration, forced with mode ANY.
+        final declaration =
+            ((body['tools'] as List).first as Map)['functionDeclarations']
+                as List;
+        expect((declaration.first as Map)['name'], 'extract');
+        expect(
+          (declaration.first as Map)['description'],
+          'Record the extracted data.',
+        );
+        expect(
+          (declaration.first as Map)['parameters'],
+          Schema.object({'name': Schema.string()}).toJsonSchema(),
+        );
+        final config =
+            (body['toolConfig'] as Map)['functionCallingConfig'] as Map;
+        expect(config['mode'], 'ANY');
+        expect(config['allowedFunctionNames'], ['extract']);
 
-      // And the call's args come back as the tool arguments.
-      expect(response.toolArguments, {'name': 'John'});
-      expect(response.text, isNull);
-    });
+        // And the call's args come back as the tool arguments.
+        expect(response.toolArguments, {'name': 'John'});
+        expect(response.text, isNull);
+      },
+    );
 
     test('omits systemInstruction when there is no system message', () async {
       late http.Request captured;
@@ -230,8 +234,13 @@ void main() {
       );
       await expectLater(
         adapter.complete(_request()),
-        throwsA(isA<AdapterException>()
-            .having((e) => e.statusCode, 'statusCode', 403)),
+        throwsA(
+          isA<AdapterException>().having(
+            (e) => e.statusCode,
+            'statusCode',
+            403,
+          ),
+        ),
       );
     });
 
