@@ -17,12 +17,12 @@ quoted back before the second answer arrives. That loop is the package.
 
 **Instead of parsing the reply yourself.** A forced tool call, `jsonDecode`, and
 an if/else over the keys gets most of the way. Typing and repair are the tedious
-parts. `IntegerSchema.normalize` (`lib/src/schema.dart:263`) collapses `25.0` to
+parts. `IntegerSchema.normalize` (`lib/src/schema.dart:290`) collapses `25.0` to
 `25` for an `integer` field, because `jsonDecode('25.0')` yields a `double` on
 the VM and an `int` on the web, and it leaves values past 2^53 alone rather than
 converting them lossily. On a violation, `extract` appends the model's own reply
 and a repair prompt to the transcript and asks again
-(`lib/src/instructor.dart:155`).
+(`lib/src/instructor.dart:166`).
 
 **Instead of `llm_schema`.** It validates the same kind of AI-generated JSON
 with a similar Zod-style builder and path-aware errors, and it is a real,
@@ -44,6 +44,23 @@ runtime with no build step. Its `SchemaValidationException` carries the final
 attempt's errors and a count (`lib/src/exceptions.dart:42-46`);
 `ExtractionException.attempts` (`lib/src/instructor.dart:31`) carries every
 attempt with its raw response.
+
+**Instead of the provider's own structured-output mode.** That mode already
+returns JSON of the right shape. A value can still be the wrong object: an
+age of `999` is a JSON integer, `"root"` is a JSON string, and `25.0` is a
+JSON Schema integer that Dart's VM will hand you as a `double`. This package
+runs `validate` on the decoded value and, on a miss, quotes the problem back
+for a retry (`lib/src/instructor.dart:166`). The table is those cases,
+grounded in `validate` / `normalize`. A provider column is filled in only
+when that provider's own documentation states the gap; where it does not,
+the row is this package's behaviour only. No row is inferred from a live
+model call.
+
+| Case | Native JSON that still type-checks | This package | Native gap |
+|---|---|---|---|
+| Out-of-range number. `Schema.integer(min: 0, max: 130)`, value `999`. | A JSON integer. Wrong age. | `IntegerSchema` reports `expected <= 130, got 999` (`lib/src/schema.dart:285`). `extract` quotes that back (`lib/src/instructor.dart:166`). | **Cited.** Anthropic structured outputs strip `minimum` / `maximum` from the schema sent to the model and check the original constraints on the client ([structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)). OpenAI JSON mode "will not guarantee the output matches any specific schema, only that it is valid and parses without errors" ([JSON mode](https://platform.openai.com/docs/guides/structured-outputs#json-mode)). OpenAI Structured Outputs lists `minimum` / `maximum` as supported; this row does not claim they miss it. Gemini lists them as supported too, and still says to "always validate values in your application" ([structured outputs](https://ai.google.dev/gemini-api/docs/structured-output)). |
+| Enum value outside the set. `Schema.enumeration(['admin', 'user'])`, value `"root"` — or the same letters with different capitalization. | A JSON string. | `EnumSchema` reports `expected one of admin, user, got …` (`lib/src/schema.dart:406`). Comparison is exact: `'Admin'` is not `'admin'`. | **Cited (Anthropic casing).** Anthropic: structured outputs "don't guarantee the capitalization of string `enum` values"; `"Conversation Topic 3"` can come back when the schema has `"Conversation topic 3"` ([structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)). OpenAI JSON mode: no schema, same citation as the row above. OpenAI Structured Outputs says you need not worry about "hallucinating an invalid enum value" ([structured outputs](https://platform.openai.com/docs/guides/structured-outputs)); this row does not contradict that. Gemini documents `enum` and still says to validate values. |
+| Integer as `25.0` after `jsonDecode` on the VM. `Schema.integer()`, then `json['age'] as int`. | A JSON number with a zero fractional part — a JSON Schema integer. `jsonDecode('25.0')` is a `double` on the VM and an `int` on the web. | `IntegerSchema.validate` accepts both (`lib/src/schema.dart:270`). `normalize` then collapses a finite integral `double` with `abs() <= 2^53` to `int` (`lib/src/schema.dart:290`), so the `as int` in `fromJson` holds on both runtimes. Values past 2^53 stay a `double`. | **Package only.** Providers return JSON numbers. None of the three documents Dart's VM / web `jsonDecode` split. |
 
 **Reach for it when**
 
@@ -197,7 +214,10 @@ The provider's own structured-output mode already covers the simple
 cases. This package is worth the dependency when the repair loop is
 worth it, and only for constraints `validate` actually checks. A
 keyword that looks enforced and is not is worse than one that is
-missing.
+missing. The cases where the JSON is well-typed and still the wrong
+object — an out-of-range number, an enum member outside the set, an
+integer that the VM left as a `double` — are in
+[Instead of the provider's own structured-output mode](#why-this-instead-of-what-you-already-have).
 
 **No constraint the builder lets you write is ignored at validate
 time.** `description` is the only JSON Schema keyword this package

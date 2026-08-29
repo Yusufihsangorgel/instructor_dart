@@ -1,3 +1,16 @@
+## 1.4.0
+
+- The README now puts, case by case, what a provider's own JSON or
+  structured-output mode can still return that is syntactically valid
+  and wrong for the caller — an out-of-range number, an enum value
+  outside the set, an integer that `jsonDecode` left as a `double` on
+  the VM — next to the `validate` / `normalize` line that catches it
+  here. Each row is either cited from that provider's documentation
+  or marked as this package's behaviour only; OpenAI Structured
+  Outputs is not claimed to miss `minimum` / `maximum` or `enum`,
+  because their docs list those as supported. Tests lock the three
+  cases so the table cannot drift from the code.
+
 ## 1.3.0
 
 - The README now says, keyword by keyword, which JSON Schema constraints
