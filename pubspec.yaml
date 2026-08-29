@@ -3,7 +3,7 @@ description: >-
   Typed, validated structured outputs from LLMs. Build a JSON Schema in plain
   Dart, with validation and repair retries. Adapters for OpenAI, Anthropic and
   Gemini.
-version: 1.4.0
+version: 1.4.1
 repository: https://github.com/Yusufihsangorgel/instructor_dart
 issue_tracker: https://github.com/Yusufihsangorgel/instructor_dart/issues
 
@@ -31,4 +31,8 @@ dependencies:
 
 dev_dependencies:
   lints: ^6.0.0
+  # example/with_stream_struct.dart only. This package validates a finished
+  # reply; stream_struct parses the token stream. A runtime dependency
+  # would pull it into every consumer, most of whom never stream.
+  stream_struct: ^1.4.1
   test: ^1.25.0

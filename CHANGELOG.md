@@ -1,3 +1,18 @@
+## 1.4.1
+
+- New `example/with_stream_struct.dart`. This package validates a
+  finished reply (and retries a miss); `stream_struct` fills the
+  object as tokens arrive. A caller who wants both currently has to
+  invent the join: render the partials, then one `extract` whose first
+  answer is the last frame. The example is that join, on canned
+  forced-tool-call chunks so it runs offline, and it is honest about
+  the friction — `Instructor.extract` always talks to a model, so the
+  live fill is not itself the commit; a miss is a new request, not a
+  replay of the stream; the builder that tolerates a half-filled
+  object is not the `fromJson` that runs after validation. No runtime
+  dependency was added: `stream_struct` is a dev dependency used by
+  that one example (and the test that locks it).
+
 ## 1.4.0
 
 - The README now puts, case by case, what a provider's own JSON or

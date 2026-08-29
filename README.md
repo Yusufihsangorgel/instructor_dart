@@ -11,7 +11,10 @@ Dallas)` comes out rather than a `Map`](https://raw.githubusercontent.com/Yusufi
 No model to hand? `dart run example/no_model_demo.dart` needs neither one nor a
 network. Its adapter answers from a script: the first answer puts the age
 outside the declared range, and you watch that rejection get written here and
-quoted back before the second answer arrives. That loop is the package.
+quoted back before the second answer arrives. That loop is the package. The
+same offline idea with a live-filling object is
+`dart run example/with_stream_struct.dart`: tokens arrive, the object grows,
+then `extract` validates the last frame and, on a miss, retries.
 
 ## Why this instead of what you already have
 
@@ -285,10 +288,14 @@ it. `Schema.string(description: 'RFC 5322 email')` accepts
 This package does one thing: reliable typed extraction. It is not an
 agent framework and does not manage conversations, tools, or memory.
 
-Planned: streaming partial results, MCP sampling
-support, server-side strict schema modes (OpenAI structured outputs,
-Anthropic strict tool use), and an optional bridge for
-`json_serializable` classes.
+Streaming the object as tokens arrive is
+[`stream_struct`](https://pub.dev/packages/stream_struct). This package
+validates the finished value. `example/with_stream_struct.dart` is the
+join, on canned chunks so it runs offline.
+
+Planned: MCP sampling support, server-side strict schema modes (OpenAI
+structured outputs, Anthropic strict tool use), and an optional bridge
+for `json_serializable` classes.
 
 ## Credits
 

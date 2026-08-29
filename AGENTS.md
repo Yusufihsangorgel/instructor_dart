@@ -75,11 +75,16 @@ Future<Person> extractPerson({required String apiKey}) async {
 - `lib/src/schema.dart` — `Schema`, `IntegerSchema.normalize`
 - `lib/src/adapter.dart` — `LlmAdapter`, `LlmRequest`, `LlmResponse`, `AdapterException`
 - `lib/src/adapters/` — `OpenAIAdapter`, `AnthropicAdapter`, `GeminiAdapter`
-- `example/` — `no_model_demo.dart` and `mock_extract.dart` need no model and no network
+- `example/` — `no_model_demo.dart`, `mock_extract.dart`, and
+  `with_stream_struct.dart` need no model and no network. The last is
+  the join with `stream_struct` (a dev dependency): the object fills
+  in as canned chunks arrive, then `extract` validates and, on a miss,
+  retries.
 - `test/` — unit tests; `test/ollama_e2e_test.dart` is `@Tags(['e2e'])` and skips without Ollama
 
 ```
 dart analyze
 dart test
 dart run example/no_model_demo.dart
+dart run example/with_stream_struct.dart
 ```
