@@ -8,11 +8,11 @@ repository: https://github.com/Yusufihsangorgel/instructor_dart
 issue_tracker: https://github.com/Yusufihsangorgel/instructor_dart/issues
 
 topics:
-  - llm
   - structured-output
-  - openai
   - anthropic
-  - ollama
+  - json-schema
+  - schema-validation
+  - llm-validation
 
 screenshots:
   - description: >-
