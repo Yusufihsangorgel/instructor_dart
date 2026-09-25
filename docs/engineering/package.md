@@ -1,6 +1,6 @@
 # Package engineering rules: instructor_dart
 
-Rules-Version: instructor_dart/8c9c6025f18c318c5ee0e05586859fcf0bc56a7d3e5c9445464b8f6549da07fd
+Rules-Version: instructor_dart/8a198e1e1784c0e4c5e837fb101589b4f4ab2158ef0d6c29edfc823b5ce30f14
 Core-Version: 1
 Core-Digest: 1825fa7ff346dca23e65b1b3bf9b2e3e06959f1414bae9952d596d2f62f09b8f
 Survey-Digest: f90f45c8a172068c3ed3b9488ba5a7cb4e58efa93c380d2d9a70b399349ec35e
@@ -170,7 +170,7 @@ The complete register is docs/engineering/debt.json.
 - instructor_dart-D003 | small | sha256:a0e51ea3ddb0:81; sha256:7a72d20ef15c:98; gemini_adapter.dart:116 | untyped catch
   Fix: Use `on Exception catch (e)`. Add a test showing that an Error thrown by a custom client propagates. Record it in the CHANGELOG.
   Closure: All three transport catch sites read on Exception catch. A test shows an Error thrown by a custom client propagates unwrapped and the CHANGELOG records the change.
-- instructor_dart-D004 | medium | lib/src/adapter.dart:19-21, 68-69, 84, 86; lib/src/message.dart:6, 18-19; lib/src/instructor.dart:9, 29, 31, 47; lib/src/schema.dart:3, 30, 175-176, 246-247, 315-316, 387, 423-425; adapter model/temperature fields and constructors | undocumented public API
+- instructor_dart-D004 | medium | lib/src/adapter.dart:19-21, 68-69, 84, 86; lib/src/message.dart:6, 18-19; lib/src/instructor.dart:9, 29, 31, 47; lib/src/schema.dart:3, 30, 175-176, 246-247, 315-316, 387, 423-425; adapter `model` and `temperature` fields and constructors | undocumented public API
   Fix: Write the missing dartdoc comments. Lock against regression by adding the `public_member_api_docs` lint to analysis_options.yaml.
   Closure: Every public declaration listed in the item carries a /// comment, including LlmAdapter.complete. The public_member_api_docs lint is enabled in analysis_options.yaml and reports no findings.
 - instructor_dart-D005 | medium | analysis_options.yaml:1-30 | configuration debt
