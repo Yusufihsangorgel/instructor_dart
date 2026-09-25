@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "package": "instructor_dart",
+  "survey_digest": "f90f45c8a172068c3ed3b9488ba5a7cb4e58efa93c380d2d9a70b399349ec35e",
+  "items": [
+    {
+      "id": "instructor_dart-D001",
+      "source_index": 1,
+      "source_item_digest": "7ccd0d22e8e62678807c3d087f41d70676560fa1e29f09295d8c9de277fd5151",
+      "baseline_revision": "a171a60",
+      "status": "open",
+      "size": "small",
+      "locations": [
+        {
+          "path_sha256": "a0e51ea3ddb0d34ec2f4f8ee90311a15481103a6f5340483561f7e170cfdfa6c",
+          "lines": "35-36"
+        },
+        {
+          "path_sha256": "7a72d20ef15c59d000f24f3f9a73bf63a72bb9ca0f91688d1ca8a065e452cceb",
+          "lines": "40-41"
+        },
+        {
+          "path": "lib/src/adapters/gemini_adapter.dart",
+          "lines": "48-49"
+        }
+      ],
+      "kind": "stale dartdoc / contract contradiction",
+      "observation": "The `timeout` dartdoc says 'A `TimeoutException` is thrown'. Since 1.0 a timeout returns as `AdapterException.transport`, with TimeoutException in the `cause` field (CHANGELOG.md:144-148; the catch is at lines 79-89 of the first adapter in the location list). There is no timeout-specific test, only a SocketException test (test/adapters_test.dart:398-408).",
+      "certainty": "confirmed",
+      "proposed_fix": "Fix the three dartdoc comments to say 'AdapterException.transport, cause TimeoutException'. Add a test per adapter with a MockClient that never completes and a short timeout.",
+      "related_rule_ids": [
+        "instructor_dart/INS-03",
+        "instructor_dart/INS-10"
+      ],
+      "issue_url": null,
+      "closure_criteria": "All three adapter dartdoc comments state that a timeout surfaces as AdapterException.transport with TimeoutException on cause. Each adapter has a test with a MockClient that never completes and a short timeout asserting that exception.",
+      "review_trigger": "Before modifying the affected code",
+      "resolution": null
+    },
+    {
+      "id": "instructor_dart-D002",
+      "source_index": 2,
+      "source_item_digest": "1487ff2e01132ef34aa3e23b8add5b26b0585b80f8e6b723cb805361eb3e6ffd",
+      "baseline_revision": "a171a60",
+      "status": "open",
+      "size": "medium",
+      "locations": [
+        {
+          "path_sha256": "a0e51ea3ddb0d34ec2f4f8ee90311a15481103a6f5340483561f7e170cfdfa6c",
+          "lines": "26-30,46-109,161-174"
+        },
+        {
+          "path_sha256": "7a72d20ef15c59d000f24f3f9a73bf63a72bb9ca0f91688d1ca8a065e452cceb",
+          "lines": "23-28,69-123,152-165"
+        },
+        {
+          "path": "lib/src/adapters/gemini_adapter.dart",
+          "lines": "39-43,75-142,179-192"
+        }
+      ],
+      "kind": "duplicated logic",
+      "observation": "Base URL trimming, client ownership and close, the POST + transport funnel, the 2xx check, JSON decoding + shape validation and the `on TypeError` wrapper are repeated almost line by line across the three adapters. One fix has to be made in three places. As a result the complete methods run 110-130 lines.",
+      "certainty": "confirmed",
+      "proposed_fix": "An unexported shared helper under lib/src/adapters/ (JSON POST + transport funnel + shape guard). Keep only request body construction and response reading in the adapter. Safety net: adapters_test.dart and gemini_adapter_test.dart.",
+      "related_rule_ids": [
+        "instructor_dart/INS-01",
+        "instructor_dart/INS-03",
+        "instructor_dart/INS-05"
+      ],
+      "issue_url": null,
+      "closure_criteria": "A single unexported helper under lib/src/adapters/ performs the JSON POST, the transport funnel and the shape guard. The three adapters keep only request building and response reading and adapters_test.dart plus gemini_adapter_test.dart pass.",
+      "review_trigger": "Before modifying the affected code",
+      "resolution": null
+    },
+    {
+      "id": "instructor_dart-D003",
+      "source_index": 3,
+      "source_item_digest": "0377d3355f5b7c885685cc2814273f97034269fcbc3efe7cf1176dd1db221aad",
+      "baseline_revision": "a171a60",
+      "status": "open",
+      "size": "small",
+      "locations": [
+        {
+          "path_sha256": "a0e51ea3ddb0d34ec2f4f8ee90311a15481103a6f5340483561f7e170cfdfa6c",
+          "lines": "81"
+        },
+        {
+          "path_sha256": "7a72d20ef15c59d000f24f3f9a73bf63a72bb9ca0f91688d1ca8a065e452cceb",
+          "lines": "98"
+        },
+        {
+          "path": "lib/src/adapters/gemini_adapter.dart",
+          "lines": "116"
+        }
+      ],
+      "kind": "untyped catch",
+      "observation": "`catch (e)` also turns programming errors (Error) into AdapterException.transport. The documented types (SocketException, TimeoutException, http.ClientException) are already Exceptions. This violates the shared typed catch principle (J10).",
+      "certainty": "confirmed",
+      "proposed_fix": "Use `on Exception catch (e)`. Add a test showing that an Error thrown by a custom client propagates. Record it in the CHANGELOG.",
+      "related_rule_ids": [
+        "instructor_dart/INS-10",
+        "instructor_dart/INS-13"
+      ],
+      "issue_url": null,
+      "closure_criteria": "All three transport catch sites read on Exception catch. A test shows an Error thrown by a custom client propagates unwrapped and the CHANGELOG records the change.",
+      "review_trigger": "Before modifying the affected code",
+      "resolution": null
+    },
+    {
+      "id": "instructor_dart-D004",
+      "source_index": 4,
+      "source_item_digest": "c2f08bd9267d09337e83900d626076e0d904e513852fcbcfec8928f44739742a",
+      "baseline_revision": "a171a60",
+      "status": "open",
+      "size": "medium",
+      "locations": [
+        {
+          "path": "lib/src/adapter.dart",
+          "lines": "19-21,68-69,84,86"
+        },
+        {
+          "path": "lib/src/message.dart",
+          "lines": "6,18-19"
+        },
+        {
+          "path": "lib/src/instructor.dart",
+          "lines": "9,29,31,47"
+        },
+        {
+          "path": "lib/src/schema.dart",
+          "lines": "3,30,175-176,246-247,315-316,387,423-425"
+        },
+        {
+          "path": "model/",
+          "lines": null
+        }
+      ],
+      "kind": "undocumented public API",
+      "observation": "A heuristic scan finds about 33 public declarations without `///` in front. The most critical is `LlmAdapter.complete`, the single extension point (adapter.dart:86). The same scan returns 0 in the other five packages.",
+      "certainty": "confirmed",
+      "proposed_fix": "Write the missing dartdoc comments. Lock against regression by adding the `public_member_api_docs` lint to analysis_options.yaml.",
+      "related_rule_ids": [
+        "instructor_dart/INS-14"
+      ],
+      "issue_url": null,
+      "closure_criteria": "Every public declaration listed in the item carries a /// comment, including LlmAdapter.complete. The public_member_api_docs lint is enabled in analysis_options.yaml and reports no findings.",
+      "review_trigger": "Before modifying the affected code",
+      "resolution": null
+    },
+    {
+      "id": "instructor_dart-D005",
+      "source_index": 5,
+      "source_item_digest": "740ec14dcce6cc08d5e68155cba4e37e7af75b3d845905fbd40669fd5d00e88e",
+      "baseline_revision": "a171a60",
+      "status": "open",
+      "size": "medium",
+      "locations": [
+        {
+          "path": "analysis_options.yaml",
+          "lines": "1-30"
+        }
+      ],
+      "kind": "configuration debt",
+      "observation": "The `dart create` template is still in place with its commented sections. The strict-casts/strict-inference/strict-raw-types settings from the sibling packages are off here.",
+      "certainty": "confirmed",
+      "proposed_fix": "Simplify the template, turn on the strict modes, and close the resulting findings in the same change (finding count was not measured).",
+      "related_rule_ids": [],
+      "issue_url": null,
+      "closure_criteria": "analysis_options.yaml enables strict-casts, strict-inference and strict-raw-types with the template comments removed. Running dart analyze with those settings produces no findings.",
+      "review_trigger": "Before modifying the affected code",
+      "resolution": null
+    },
+    {
+      "id": "instructor_dart-D006",
+      "source_index": 6,
+      "source_item_digest": "1b987cd5b96d9d571223e55bb094eec77037f3c8330e3e440d21b49fe6c4a39d",
+      "baseline_revision": "a171a60",
+      "status": "open",
+      "size": "small",
+      "locations": [
+        {
+          "path": ".github/workflows/ci.yaml",
+          "lines": "20-23"
+        },
+        {
+          "path": "lib/src/schema.dart",
+          "lines": "63-66,232-237"
+        },
+        {
+          "path": "lib/src/instructor.dart",
+          "lines": "87-91"
+        }
+      ],
+      "kind": "unverified platform claim",
+      "observation": "The dartdoc says integer normalization gives the same result on VM and web. CI runs tests only on the VM.",
+      "certainty": "confirmed",
+      "proposed_fix": "Add `dart test -p chrome --exclude-tags e2e` to ci.yaml. Separate the tests that use dart:io (adapters_test.dart:2, 400; ollama_e2e_test.dart) with `@TestOn('vm')`.",
+      "related_rule_ids": [
+        "instructor_dart/INS-11"
+      ],
+      "issue_url": null,
+      "closure_criteria": "ci.yaml runs dart test -p chrome --exclude-tags e2e and the run passes. The test files that use dart:io carry @TestOn('vm').",
+      "review_trigger": "Before modifying the affected code",
+      "resolution": null
+    },
+    {
+      "id": "instructor_dart-D007",
+      "source_index": 7,
+      "source_item_digest": "505ba91450294f03b7fe1ffa4ea12392072354d0cdc8c07e41d971036f73a29f",
+      "baseline_revision": "a171a60",
+      "status": "open",
+      "size": "small",
+      "locations": [
+        {
+          "path_sha256": "7a72d20ef15c59d000f24f3f9a73bf63a72bb9ca0f91688d1ca8a065e452cceb",
+          "lines": "54-67"
+        },
+        {
+          "path": "lib/src/adapters/gemini_adapter.dart",
+          "lines": "59-73"
+        }
+      ],
+      "kind": "inconsistent behavior",
+      "observation": "System messages are joined with two newlines in one adapter and a single newline in the other. A request containing only a system message throws ArgumentError in one adapter and goes to the API with empty `contents` in the other.",
+      "certainty": "confirmed",
+      "proposed_fix": "Pick one separator and one empty-conversation policy, and add tests to both adapters. If the difference is intentional, write the rationale in the dartdoc.",
+      "related_rule_ids": [
+        "instructor_dart/INS-10"
+      ],
+      "issue_url": null,
+      "closure_criteria": "Both adapters named in the location use one system-message separator and one empty-conversation policy. Tests in both adapter test files pin the choice or the dartdoc explains the intentional difference.",
+      "review_trigger": "Before modifying the affected code",
+      "resolution": null
+    },
+    {
+      "id": "instructor_dart-D008",
+      "source_index": 8,
+      "source_item_digest": "5ea89632406a0f588aee83babaf9f08e1af775734d1f30fe37b4808e5c6435f1",
+      "baseline_revision": "a171a60",
+      "status": "open",
+      "size": "large",
+      "locations": [
+        {
+          "path": "lib/src/adapter.dart",
+          "lines": "56-66"
+        },
+        {
+          "path": "lib/src/instructor.dart",
+          "lines": "122-127"
+        }
+      ],
+      "kind": "planned removal (recorded)",
+      "observation": "The deprecated unnamed `LlmResponse` constructor will be removed in 2.0.0. Until then extractRaw has to extract responses that carry both fields at once.",
+      "certainty": "confirmed",
+      "proposed_fix": "Remove the constructor in 2.0.0, turn LlmResponse into a three-case closed type, and delete the instructor.dart:122-127 branch.",
+      "related_rule_ids": [
+        "instructor_dart/INS-12"
+      ],
+      "issue_url": null,
+      "closure_criteria": "Version 2.0.0 removes the deprecated unnamed LlmResponse constructor and ships LlmResponse as a three-case closed type. The branch at instructor.dart:122-127 is gone and the package tests pass.",
+      "review_trigger": "Before modifying the affected code",
+      "resolution": null
+    }
+  ]
+}
