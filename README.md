@@ -27,26 +27,13 @@ converting them lossily. On a violation, `extract` appends the model's own reply
 and a repair prompt to the transcript and asks again
 (`lib/src/instructor.dart:166`).
 
-**Instead of `llm_schema`.** It validates the same kind of AI-generated JSON
-with a similar Zod-style builder and path-aware errors, and it is a real,
-adopted package, not a strawman: pure Dart, zero dependencies (`pubspec.yaml`
-lists none), published a month before this comparison was written. What it
-does not do is call a model. Its own README shows the retry as a hand-written
-`for` loop that calls `callModel` a second time and re-parses the reply
-(`README.md`, under "The repair loop"); nothing in its 1,206 lines of `lib/`
-sends a request anywhere. `Instructor.extract` (`lib/src/instructor.dart:65`)
-is that same loop, already wired to an adapter — OpenAI, Anthropic, or
-Gemini — so a caller writes a schema and one call, not the retry itself.
-
-**Also newer, worth naming honestly.** `typed_llm` reached pub.dev on
-9 August 2026, three versions the same day, 0 likes and no 30-day download
-count yet (`pub.dev/api/packages/typed_llm`). It takes a third road:
-`build_runner` plus an `@LlmSchema` annotation that generates a `.g.dart`
-(`README.md:66` and `:100`), where the schema here is a value you write at
-runtime with no build step. Its `SchemaValidationException` carries the final
-attempt's errors and a count (`lib/src/exceptions.dart:42-46`);
-`ExtractionException.attempts` (`lib/src/instructor.dart:31`) carries every
-attempt with its raw response.
+**Instead of a validator you wrap in your own loop.** A library that only
+validates leaves the model call and the retry to you. `Instructor.extract`
+(`lib/src/instructor.dart:65`) validates the response and retries through the
+package's provider adapters. The schema is a Dart value built at
+runtime, with no `build_runner` step and no generated `.g.dart` file. When every
+attempt fails, `ExtractionException.attempts` (`lib/src/instructor.dart:31`)
+carries each attempt with its raw response.
 
 **Instead of the provider's own structured-output mode.** That mode already
 returns JSON of the right shape. A value can still be the wrong object: an

@@ -52,10 +52,13 @@ dependency used by this file (and the test that locks it) only.
 
 ## `instructor_dart_example.dart` and `extract_demo.dart` — against a real model
 
-Same code, pointed at a live provider. `instructor_dart_example.dart` reads
-`OPENAI_API_KEY` from the environment; `extract_demo.dart` talks to a local
-Ollama (`http://localhost:11434`). Any OpenAI-compatible server works — the
-package README shows the Anthropic and Gemini adapters as well.
+Same code, pointed at a live provider. `extract_demo.dart` talks to a local
+Ollama (`http://localhost:11434`). `OLLAMA_HOST`, `OLLAMA_PORT` and
+`OLLAMA_MODEL` override the host, port and model. `instructor_dart_example.dart`
+reads its API key from the environment variable in the command below. It first
+checks that Ollama is reachable and exits if it is not. Ollama must be running
+for it too. Any server with a compatible chat API works, and the package README
+lists the other adapters.
 
 ```
 OPENAI_API_KEY=sk-... dart run example/instructor_dart_example.dart

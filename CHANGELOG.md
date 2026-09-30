@@ -1,3 +1,12 @@
+## 1.4.2
+
+- The README comparison no longer quotes figures about other packages that
+  this repository cannot check. It now describes what `Instructor.extract`
+  does and where the code lives.
+- `example/README.md` now says that `instructor_dart_example.dart` also
+  needs Ollama running, and lists the environment variables that
+  configure the Ollama examples.
+
 ## 1.4.1
 
 - New `example/with_stream_struct.dart`. This package validates a
