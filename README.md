@@ -52,6 +52,20 @@ model call.
 | Enum value outside the set. `Schema.enumeration(['admin', 'user'])`, value `"root"` — or the same letters with different capitalization. | A JSON string. | `EnumSchema` reports `expected one of admin, user, got …` (`lib/src/schema.dart:406`). Comparison is exact: `'Admin'` is not `'admin'`. | **Cited (Anthropic casing).** Anthropic: structured outputs "don't guarantee the capitalization of string `enum` values"; `"Conversation Topic 3"` can come back when the schema has `"Conversation topic 3"` ([structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)). OpenAI JSON mode: no schema, same citation as the row above. OpenAI Structured Outputs says you need not worry about "hallucinating an invalid enum value" ([structured outputs](https://platform.openai.com/docs/guides/structured-outputs)); this row does not contradict that. Gemini documents `enum` and still says to validate values. |
 | Integer as `25.0` after `jsonDecode` on the VM. `Schema.integer()`, then `json['age'] as int`. | A JSON number with a zero fractional part — a JSON Schema integer. `jsonDecode('25.0')` is a `double` on the VM and an `int` on the web. | `IntegerSchema.validate` accepts both (`lib/src/schema.dart:270`). `normalize` then collapses a finite integral `double` with `abs() <= 2^53` to `int` (`lib/src/schema.dart:290`), so the `as int` in `fromJson` holds on both runtimes. Values past 2^53 stay a `double`. | **Package only.** Providers return JSON numbers. None of the three documents Dart's VM / web `jsonDecode` split. |
 
+**Choosing between this package and the native mode.** The two are not
+stacked. The bundled adapters send a forced tool call and do not turn on a
+provider's strict schema mode (that is on the roadmap below). The choice is
+which side checks the reply, and when the native mode is the better pick.
+
+| Your situation | Better choice | Why |
+|---|---|---|
+| Ranges, lengths or patterns on values matter, such as `max: 130` or `pattern:`. | This package | `validate` checks them locally and `extract` quotes each miss back with its JSON path (`validate` call at `lib/src/instructor.dart:149`, repair prompt at `lib/src/instructor.dart:168`). The first row above cites where a provider's mode does not guarantee a numeric range. |
+| You call more than one provider, or a local server such as Ollama. | This package | One schema and one `extract` call work across all three bundled adapters. Provider modes are separate APIs, each with its own supported part of JSON Schema. Gemini, for example, says "Not all JSON Schema features are supported" ([structured outputs](https://ai.google.dev/gemini-api/docs/structured-output)). |
+| An integer field is read as `int` on both the VM and the web. | This package | `normalize` turns `25.0` into `25` for an `integer` field (`lib/src/schema.dart:290`). See the third row above. |
+| One provider, plain types and required fields. | Native mode | Gemini's page says its mode "ensures predictable, type-safe results" (same link). A native mode costs one request per call. Here a bad reply costs another model call, up to `maxRetries + 1` calls, 3 with the default of 2 (`lib/src/instructor.dart:71`). |
+| The schema needs `anyOf`, `$ref` or string formats such as `email`. | Check the native mode | This package has no builder for them (see [What is actually validated](#what-is-actually-validated)). Read your provider's documentation for what its mode accepts. |
+| A rule that is not a schema keyword, such as an end date after a start date. | Neither | This package does not check it. There is no custom validator hook, and an exception thrown by `fromJson` is not retried (`lib/src/instructor.dart:82`). Check such a rule in your own code after `extract`. |
+
 **Reach for it when**
 
 - You are pulling fields out of unstructured text, such as an invoice or a

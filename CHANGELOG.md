@@ -1,5 +1,8 @@
 ## 1.4.2
 
+- The README now has a decision table for choosing between this package
+  and a provider's native structured-output mode. It says when each is
+  the better pick, and where neither checks a rule.
 - The README comparison no longer quotes figures about other packages that
   this repository cannot check. It now describes what `Instructor.extract`
   does and where the code lives.
