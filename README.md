@@ -91,10 +91,17 @@ Dart, and the same definition is used twice: sent to the provider as a
 tool signature, and used locally to validate what comes back.
 
 ```dart
+import 'dart:io';
+
 import 'package:instructor_dart/instructor_dart.dart';
 
+final apiKey = Platform.environment['API_KEY'] ??
+    (throw StateError('Set API_KEY to your provider key.'));
+final model = Platform.environment['MODEL'] ??
+    (throw StateError('Set MODEL to a model id your provider offers.'));
+
 final instructor = Instructor(
-  adapter: OpenAIAdapter(apiKey: apiKey, model: 'gpt-4o-mini'),
+  adapter: OpenAIAdapter(apiKey: apiKey, model: model),
 );
 // An adapter given no http.Client creates and owns one. Close the
 // Instructor when you are done with it; the call forwards to the adapter.
@@ -163,9 +170,11 @@ try {
 | `GeminiAdapter` | Gemini API `generateContent` |
 
 ```dart
+import 'dart:io';
+
 final adapter = GeminiAdapter(
   apiKey: Platform.environment['GEMINI_API_KEY']!,
-  model: 'gemini-3.6-flash',
+  model: Platform.environment['GEMINI_MODEL']!, // a model id Google offers
 );
 ```
 

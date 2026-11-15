@@ -23,12 +23,12 @@ final class Person {
 
 Future<void> main() async {
   await requireOllama();
-  // Works with any OpenAI-compatible server. For a local model:
-  //   OpenAIAdapter(apiKey: 'ollama', model: 'llama3.2',
-  //       baseUrl: 'http://localhost:11434/v1')
+  // A server with a compatible chat completions endpoint works the same
+  // way. Change baseUrl, model and apiKey to point at another one.
   final adapter = OpenAIAdapter(
-    apiKey: Platform.environment['OPENAI_API_KEY'] ?? '',
-    model: 'gpt-4o-mini',
+    apiKey: 'ollama', // any non-empty string
+    model: ollamaModel,
+    baseUrl: ollamaBaseUrl,
   );
 
   final instructor = Instructor(adapter: adapter);

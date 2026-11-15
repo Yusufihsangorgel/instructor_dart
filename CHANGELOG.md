@@ -1,7 +1,7 @@
 ## 1.4.2
 
-- The README, the Gemini adapter docs and the tests now use
-  `gemini-3.6-flash`. Google shut down `gemini-2.0-flash` on 2026-06-01.
+- The Gemini adapter docs and the tests now use `gemini-3.6-flash`.
+  Google shut down `gemini-2.0-flash` on 2026-06-01.
   No adapter code changed.
 - The README now has a decision table for choosing between this package
   and a provider's native structured-output mode. It says when each is
@@ -12,6 +12,10 @@
 - `example/README.md` now says that `instructor_dart_example.dart` also
   needs Ollama running, and lists the environment variables that
   configure the Ollama examples.
+- `example/instructor_dart_example.dart` now sends its request to the
+  local Ollama model it checks for. It no longer needs a hosted API key.
+  The README snippets for hosted providers read the model id from the
+  environment.
 
 ## 1.4.1
 
