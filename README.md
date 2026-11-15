@@ -8,6 +8,58 @@ Typed, validated structured outputs from LLMs.
 answers locally, and a typed `Person(name: John Carmack, age: 55, city:
 Dallas)` comes out rather than a `Map`](https://raw.githubusercontent.com/Yusufihsangorgel/instructor_dart/main/doc/local-extract.gif)
 
+A sentence in, a typed `Person` out, from a local model. This needs no account
+and no API key. Run `dart pub add instructor_dart`, start Ollama, and run
+`ollama pull llama3.2:3b` once.
+
+```dart
+import 'package:instructor_dart/instructor_dart.dart';
+
+// Your own class. The schema describes the shape and fromJson turns the
+// validated map into this type.
+final class Person {
+  const Person({required this.name, required this.age, this.city});
+
+  factory Person.fromJson(Map<String, Object?> json) => Person(
+        name: json['name'] as String,
+        age: json['age'] as int,
+        city: json['city'] as String?,
+      );
+
+  final String name;
+  final int age;
+  final String? city;
+
+  @override
+  String toString() => 'Person(name: $name, age: $age, city: $city)';
+}
+
+Future<void> main() async {
+  final instructor = Instructor(
+    adapter: OpenAIAdapter(
+      apiKey: 'ollama', // any non-empty string
+      model: 'llama3.2:3b',
+      baseUrl: 'http://localhost:11434/v1',
+    ),
+  );
+
+  final person = await instructor.extract(
+    messages: const [Message.user('John Carmack is 55 and lives in Dallas.')],
+    schema: Schema.object({
+      'name': Schema.string(description: 'Full name'),
+      'age': Schema.integer(min: 0, max: 130),
+      'city': Schema.string().optional(),
+    }),
+    fromJson: Person.fromJson,
+  );
+
+  // fromJson runs only after validation passed. Every required field is
+  // present and correctly typed.
+  print(person); // Person(name: John Carmack, age: 55, city: Dallas)
+  instructor.close();
+}
+```
+
 No model to hand? `dart run example/no_model_demo.dart` needs neither one nor a
 network. Its adapter answers from a script: the first answer puts the age
 outside the declared range, and you watch that rejection get written here and
@@ -90,6 +142,9 @@ No code generation, no build_runner. The schema is a value you write in
 Dart, and the same definition is used twice: sent to the provider as a
 tool signature, and used locally to validate what comes back.
 
+The example at the top runs against a local model. For a hosted provider,
+change only the adapter. The `extract` call stays the same.
+
 ```dart
 import 'dart:io';
 
@@ -103,24 +158,11 @@ final model = Platform.environment['MODEL'] ??
 final instructor = Instructor(
   adapter: OpenAIAdapter(apiKey: apiKey, model: model),
 );
-// An adapter given no http.Client creates and owns one. Close the
-// Instructor when you are done with it; the call forwards to the adapter.
-// A long-lived Instructor can simply live as long as the program.
-
-final person = await instructor.extract(
-  messages: const [Message.user('John Carmack is 55 and lives in Dallas.')],
-  schema: Schema.object({
-    'name': Schema.string(description: 'Full name'),
-    'age': Schema.integer(min: 0, max: 130),
-    'city': Schema.string().optional(),
-  }),
-  // Your model class, and your factory. The schema above describes the
-  // shape; this turns the validated map into your type.
-  fromJson: Person.fromJson,
-);
-// person is a Person. fromJson only runs after validation passed: every
-// required field is present and correctly typed.
 ```
+
+An adapter given no `http.Client` creates and owns one. Close the `Instructor`
+when you are done with it. The call forwards to the adapter. A long-lived
+`Instructor` can simply live as long as the program.
 
 ## How it works
 
