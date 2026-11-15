@@ -165,7 +165,7 @@ try {
 ```dart
 final adapter = GeminiAdapter(
   apiKey: Platform.environment['GEMINI_API_KEY']!,
-  model: 'gemini-2.0-flash',
+  model: 'gemini-3.6-flash',
 );
 ```
 

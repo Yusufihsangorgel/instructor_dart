@@ -48,7 +48,7 @@ void main() {
 
         final adapter = GeminiAdapter(
           apiKey: 'secret',
-          model: 'gemini-2.0-flash',
+          model: 'gemini-3.6-flash',
           client: client,
         );
         final response = await adapter.complete(_request());
@@ -57,7 +57,7 @@ void main() {
         expect(
           captured.url.toString(),
           'https://generativelanguage.googleapis.com/v1beta/models/'
-          'gemini-2.0-flash:generateContent',
+          'gemini-3.6-flash:generateContent',
         );
         // The key goes in the header, so it never lands in a URL or a log.
         expect(captured.headers['x-goog-api-key'], 'secret');
@@ -117,7 +117,7 @@ void main() {
       });
       final adapter = GeminiAdapter(
         apiKey: 'k',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         client: client,
       );
       await adapter.complete(
@@ -140,7 +140,7 @@ void main() {
       });
       final adapter = GeminiAdapter(
         apiKey: 'k',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         client: client,
       );
       await adapter.complete(
@@ -181,7 +181,7 @@ void main() {
       });
       final adapter = GeminiAdapter(
         apiKey: 'k',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         client: client,
       );
       final response = await adapter.complete(_request());
@@ -215,7 +215,7 @@ void main() {
       });
       final adapter = GeminiAdapter(
         apiKey: 'k',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         client: client,
       );
       final response = await adapter.complete(_request());
@@ -228,7 +228,7 @@ void main() {
       });
       final adapter = GeminiAdapter(
         apiKey: 'k',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         client: client,
       );
       await expectLater(
@@ -249,7 +249,7 @@ void main() {
       );
       final adapter = GeminiAdapter(
         apiKey: 'k',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         client: client,
       );
       final response = await adapter.complete(_request());
@@ -265,14 +265,14 @@ void main() {
       });
       final adapter = GeminiAdapter(
         apiKey: 'k',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         baseUrl: 'https://example.test/v1beta/',
         client: client,
       );
       await adapter.complete(_request());
       expect(
         captured.url.toString(),
-        'https://example.test/v1beta/models/gemini-2.0-flash:generateContent',
+        'https://example.test/v1beta/models/gemini-3.6-flash:generateContent',
       );
     });
   });

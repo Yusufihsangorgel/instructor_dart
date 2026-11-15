@@ -1,5 +1,8 @@
 ## 1.4.2
 
+- The README, the Gemini adapter docs and the tests now use
+  `gemini-3.6-flash`. Google shut down `gemini-2.0-flash` on 2026-06-01.
+  No adapter code changed.
 - The README now has a decision table for choosing between this package
   and a provider's native structured-output mode. It says when each is
   the better pick, and where neither checks a rule.

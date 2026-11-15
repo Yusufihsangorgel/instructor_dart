@@ -23,7 +23,7 @@ import '../message.dart';
 /// query parameter, so it does not end up in URLs, proxy logs, or crash
 /// reports. Both are accepted by the API.
 final class GeminiAdapter extends LlmAdapter {
-  /// [model] is the bare model id, such as `gemini-2.0-flash`; the adapter
+  /// [model] is the bare model id, such as `gemini-3.6-flash`; the adapter
   /// adds the `models/` prefix and the `:generateContent` suffix.
   ///
   /// [baseUrl] must point at the API version root that contains `models/`,
